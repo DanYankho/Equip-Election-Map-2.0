@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Malawi Election Map — Mobile</title>
+
+  <!-- D3 -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+
+  <style>
+    /* ---------- Base Styles ---------- */
+    :root {
+      --accent: #0d2136;
+      --ui: #222;
+      --muted: #777;
+      --panel-width: 340px;
+      --tv-safe-margin: 7%;
+      --mobile-padding: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background: #A7A7A7;
+      font-family: 'Libre Franklin', "Segoe UI", Roboto, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow: hidden;
+      color: #111;
+      touch-action: manipulation;
+    }
+
+    /* ---------- Header ---------- */
+    .header {
+      position: absolute;
+      top: 20px;
+      left: var(--mobile-padding);
+      right: var(--mobile-padding);
+      z-index: 75;
+      pointer-events: none;
+      transition: opacity 300ms ease, visibility 300ms ease;
+      text-align: center;
+    }
+    
+    .header.hidden {
+      opacity: 0;
+      visibility: hidden;
+    }
+    
+    .header h1 {
+      margin: 0 auto;
+      padding: 12px 18px;
+      font-size: 20px;
+      color: var(--accent);
+      background: rgba(255,255,255,0.85);
+      border-radius: 6px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      font-weight: 700;
+      pointer-events: auto;
+      display: inline-block;
+      max-width: 100%;
+      white-space: normal;
+      line-height: 1.2;
+    }
+
+    /* Years dropdown */
+    .year-dropdown {
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #fff;
+      border: 1px solid #ddd;
+      width: 90%;
+      max-width: 300px;
+      border-radius: 6px;
+      box-shadow: 0 8px 28px rgba(0,0,0,0.08);
+      padding: 8px;
+      display: none;
+      z-index: 80;
+      pointer-events: auto;
+      max-height: 70vh;
+      overflow-y: auto;
+    }
+    
+    .year-dropdown button {
+      display: block;
+      width: 100%;
+      text-align: left;
+      background: transparent;
+      border: none;
+      padding: 12px;
+      cursor: pointer;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    
+    .year-dropdown button:hover { background: rgba(0,0,0,0.04); }
+    .year-dropdown button.active { background: var(--accent); color: #fff; font-weight:700; }
+
+    /* ---------- Map Container ---------- */
+    #map-root {
+      position: absolute;
+      width: 100vw;
+      height: 100vh;
+      left: 0;
+      top: 0;
+      overflow: hidden;
+      transition: height 0.3s ease;
+    }
+    
+    svg { 
+      width: 100%; 
+      height: 100%; 
+      display:block; 
+    }
+
+    /* District, lake styles */
+    .district {
+      stroke: #333;
+      stroke-width: 2px;
+      cursor: pointer;
+      transition: stroke-width 120ms ease, filter 120ms ease, opacity 120ms ease;
+      paint-order: stroke;
+    }
+    
+    .district:hover { stroke-width: 2px; filter: drop-shadow(0 2px 10px rgba(0,0,0,0.08)); }
+    
+    .lake {
+      fill: #cfe9ff;
+      stroke: #9fc7ee;
+      stroke-width: 0.4px;
+    }
+    
+    .faded { opacity: 0.12; }
+    
+    .focused { 
+      stroke-width: 2px; 
+      filter: drop-shadow(0 2px 14px rgba(255,215,0,0.6));
+      z-index: 10;
+    }
+
+    /* ---------- Control Buttons ---------- */
+    .control-buttons {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 70;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    
+    .control-button-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .button-label {
+      font-size: 10px;
+      color: #333;
+      text-align: center;
+      font-weight: 500;
+    }
+    
+    .control-button {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.9);
+      border: none;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      cursor: pointer;
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+    
+    .control-button:hover {
+      transform: scale(1.1);
+      background: rgba(255, 255, 255, 1);
+    }
+    
+    .control-button.active {
+      background: var(--accent);
+      color: white;
+    }
+
+    /* ---------- Panels (Bottom Half) ---------- */
+    .info-panel, .stats-panel {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 0;
+      background: #ffffff;
+      border-top: 1px solid rgba(0,0,0,0.08);
+      z-index: 90;
+      overflow: hidden;
+      transition: height 0.3s ease;
+      padding: 0;
+      transform: translateY(100%);
+    }
+    
+    .info-panel.visible, .stats-panel.visible { 
+      height: 50vh;
+      transform: translateY(0);
+    }
+    
+    .panel-header {
+      position: sticky;
+      top: 0;
+      background: white;
+      z-index: 10;
+      padding: 16px 16px 10px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .panel-content {
+      height: calc(100% - 60px);
+      overflow-y: auto;
+      padding: 0 16px 16px;
+    }
+    
+    .panel-title { 
+      color: var(--accent); 
+      font-weight: 700; 
+      margin-bottom: 6px; 
+      font-size: 24px;
+    }
+    
+    .panel-subtitle { 
+      color: #444; 
+      font-size: 18px;
+      font-weight: 500;
+    }
+    
+    /* Info panel specific styles */
+    .info-panel table { 
+      width: 100%; 
+      border-collapse: collapse; 
+      font-size: 16px;
+      margin-top: 15px;
+    }
+    
+    .info-panel .party-label {
+      display: block;
+      font-size: 14px;
+      color: #777;
+      font-weight: 500;
+      margin-left: 0;
+      margin-top: 4px;
+    }
+    
+    .info-panel tr { 
+      border-bottom: 1px solid #eee;
+      position: relative;
+    }
+    
+    .info-panel tr:last-child {
+      border-bottom: none;
+    }
+    
+    .info-panel tr td { 
+      padding: 10px 8px; 
+      vertical-align: middle; 
+      position: relative;
+      z-index: 1;
+    }
+    
+    .winner-badge {
+      display: inline-block;
+      background: var(--accent);
+      color: #FFF;
+      font-weight: bold;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      margin-left: 8px;
+    }
+
+    /* Stats panels specific styles */
+    .stats-title {
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 24px;
+      margin: 0;
+    }
+    
+    .stats-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 18px; /* Increased font size */
+    }
+    
+    .stats-table tr {
+      border-bottom: 1px solid #eee;
+      position: relative;
+      height: 50px; /* Increased row height */
+    }
+    
+    .stats-table tr:last-child {
+      border-bottom: none;
+    }
+    
+    .stats-table td {
+      padding: 14px 8px; /* Increased padding */
+      vertical-align: middle;
+      position: relative;
+      z-index: 1;
+    }
+    
+    .stats-table .percentage {
+      text-align: right;
+      color: #333;
+      font-weight: 700;
+      padding-right: 5px;
+    }
+    
+    .stats-table .votes {
+      text-align: right;
+      color: #202020;
+      font-size: 16px;
+      padding-right: 5px;
+    }
+    
+    .stats-table .party-label {
+      display: block;
+      font-size: 14px;
+      color: #777;
+      font-weight: 500;
+      margin-left: 0;
+      margin-top: 4px;
+    }
+
+    /* Party swatch */
+    .party-swatch { 
+      width: 20px; /* Increased size */
+      height: 20px; /* Increased size */
+      display: inline-block; 
+      border-radius: 4px; 
+      margin-right: 10px; 
+      border: 1px solid rgba(0,0,0,0.1); 
+    }
+
+    /* Percentage bars */
+    .percentage-bar-container {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: calc(100% - 4px);
+      height: calc(100% - 4px);
+      border-radius: 4px;
+      overflow: hidden;
+      z-index: 0;
+      background: linear-gradient(90deg, rgba(0,0,0,0.03) 0%, rgba(0,0,0,0.01) 100%);
+    }
+    
+    .percentage-bar {
+      height: 100%;
+      border-radius: 8px;
+      opacity: 0.5;
+      transition: width 0.5s ease;
+    }
+
+    /* Search panel styles */
+    .search-container {
+      padding: 10px 0;
+    }
+    
+    #district-search {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+    
+    .search-results {
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    
+    .search-result-item {
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    
+    .search-result-item:hover {
+      background-color: #f5f5f5;
+    }
+
+    /* ---------- Footer for 2025 ---------- */
+    .footer {
+      position: absolute;
+      bottom: 10px;
+      left: 16px;
+      width: auto;
+      text-align: left;
+      font-size: 14px;
+      color: #666;
+      z-index: 60;
+      pointer-events: none;
+      padding: 8px 12px;
+      background: rgba(255, 255, 255, 0.7);
+      border-radius: 4px;
+    }
+
+    /* ---------- Loading Indicator ---------- */
+    .loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 1000;
+      background: rgba(255,255,255,0.9);
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .loading-spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid rgba(0,0,0,0.1);
+      border-radius: 50%;
+      border-top-color: var(--accent);
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ---------- Close Button for Panels ---------- */
+    .close-button {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.05);
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      cursor: pointer;
+      z-index: 100;
+    }
+    
+    .close-button:hover {
+      background: rgba(0,0,0,0.1);
+    }
+
+    /* ---------- Media Queries for Very Small Screens ---------- */
+    @media (max-width: 350px) {
+      .header h1 { font-size: 18px; }
+      .panel-title { font-size: 20px; }
+      .panel-subtitle { font-size: 16px; }
+      .stats-title { font-size: 20px; }
+      .info-panel table, .stats-table { font-size: 14px; }
+      .stats-table tr { height: 45px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1 id="page-title">Malawi Presidential Election Results</h1>
+    <div id="yearDropdown" class="year-dropdown" role="menu" aria-hidden="true"></div>
+  </div>
+
+  <div id="map-root" role="application" aria-label="Malawi map">
+    <svg id="map-svg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet"></svg>
+    
+    <div class="control-buttons">
+      <div class="control-button-wrapper">
+        <button id="votes-button" class="control-button" aria-label="Show total votes">📊</button>
+        <span class="button-label">Totals</span>
+      </div>
+      <div class="control-button-wrapper">
+        <button id="districts-button" class="control-button" aria-label="Show districts won">🔢</button>
+        <span class="button-label">Districts</span>
+      </div>
+      <div class="control-button-wrapper">
+        <button id="search-button" class="control-button" aria-label="Search districts">🔍</button>
+        <span class="button-label">Search</span>
+      </div>
+    </div>
+    
+    <div id="info-panel" class="info-panel" role="dialog" aria-hidden="true">
+      <button class="close-button" aria-label="Close panel">×</button>
+      <div class="panel-header">
+        <div class="panel-title" id="info-panel-title">District Results</div>
+        <div class="panel-subtitle" id="info-panel-subtitle">Votes by candidate</div>
+      </div>
+      <div class="panel-content" id="info-panel-content"></div>
+    </div>
+    
+    <div id="candidate-stats" class="stats-panel">
+      <button class="close-button" aria-label="Close panel">×</button>
+      <div class="panel-header">
+        <div class="stats-title">Total Votes</div>
+      </div>
+      <div class="panel-content">
+        <table class="stats-table" id="candidate-table"></table>
+      </div>
+    </div>
+    
+    <div id="party-stats" class="stats-panel">
+      <button class="close-button" aria-label="Close panel">×</button>
+      <div class="panel-header">
+        <div class="stats-title">Districts Won</div>
+      </div>
+      <div class="panel-content">
+        <table class="stats-table" id="party-table"></table>
+      </div>
+    </div>
+    
+    <div id="search-panel" class="stats-panel">
+      <button class="close-button" aria-label="Close panel">×</button>
+      <div class="panel-header">
+        <div class="stats-title">Search Districts</div>
+      </div>
+      <div class="panel-content">
+        <div class="search-container">
+          <input type="text" id="district-search" placeholder="Type district name..." />
+          <div id="search-results" class="search-results"></div>
+        </div>
+      </div>
+    </div>
+    
+    <div id="loading" class="loading" style="display: none;">
+      <div class="loading-spinner"></div>
+      <span>Loading data...</span>
+    </div>
+
+    <div id="footer" class="footer" style="display: none;">
+      *Unofficial results for 2025*
+    </div>
+  </div>
+
+  <script>
+  (async function(){
+    // ---------- CONFIG ----------
+    const years = ["1994","1999","2004","2009","2014","2019","2020","2025"];
+    let currentYear = years[0];
+
+    // District abbreviations mapping
+    const districtAbbreviations = {
+      "CHITIPA": "CT", "KARONGA": "KA", "LIKOMA": "LI", "MZIMBA": "MB", 
+      "NKHATA BAY": "NB", "RUMPHI": "RU", "DEDZA": "DE", "DOWA": "DO", 
+      "KASUNGU": "KU", "LILONGWE": "LL", "MCHINJI": "MI", "NKHOTAKOTA": "NK", 
+      "NENO": "NE", "NTCHEU": "NT", "NTCHISI": "NC", "SALIMA": "SA", 
+      "BALAKA": "BA", "BLANTYRE": "BT", "CHIKWAWA": "CK", "CHIRADZULU": "CR", 
+      "MACHINGA": "MA", "MANGOCHI": "MG", "MULANJE": "MU", "MWANZA": "MW", 
+      "NSANJE": "NS", "PHALOMBE": "PH", "THYOLO": "TH", "ZOMBA": "ZA"
+    };
+
+    // Helper function to get district abbreviation
+    function getDistrictAbbreviation(districtName) {
+      const normalized = normalizeName(districtName);
+      return districtAbbreviations[normalized] || normalized.substring(0, 2);
+    }
+
+    // UI Elements
+    const mapRoot = document.getElementById("map-root");
+    const svg = d3.select("#map-svg");
+    let width = mapRoot.clientWidth, height = mapRoot.clientHeight;
+    svg.attr("viewBox", `0 0 ${width} ${height}`);
+
+    const mapGroup = svg.append("g").attr("id", "mapGroup");
+    const infoPanel = d3.select("#info-panel");
+    const infoPanelTitle = d3.select("#info-panel-title");
+    const infoPanelSubtitle = d3.select("#info-panel-subtitle");
+    const infoPanelContent = d3.select("#info-panel-content");
+    const candidateStats = d3.select("#candidate-stats");
+    const partyStats = d3.select("#party-stats");
+    const searchPanel = d3.select("#search-panel");
+    const header = d3.select(".header");
+    const footer = d3.select("#footer");
+    const loadingIndicator = d3.select("#loading");
+    const votesButton = d3.select("#votes-button");
+    const districtsButton = d3.select("#districts-button");
+    const searchButton = d3.select("#search-button");
+    const districtSearch = d3.select("#district-search");
+    const searchResults = d3.select("#search-results");
+
+    // Projection & path
+    const projection = d3.geoMercator()
+      .center([34.3015, -13.2543])
+      .scale(Math.min(width, height) * 10.5)
+      .translate([width / 2, height / 2 + 40]);
+    
+    const path = d3.geoPath().projection(projection);
+
+    // State
+    let geoData = null;
+    let districtSelection = null;
+    let lakeSelection = null;
+    let zoomBehavior = null;
+    let allElectionData = {};
+    let selectedFeature = null;
+    let selectedFeatureId = null;
+    let activePanel = null;
+
+    // Performance optimization cache
+    const centroidCache = new Map();
+    let resizeTimeout = null;
+
+    // Normalize function
+    function normalizeName(name){
+      if(!name || typeof name !== 'string') return '';
+      return name.trim().toUpperCase().replace(/\s+/g, ' ');
+    }
+
+    // Robust feature district name extraction
+    function featureDistrictName(feat){
+      const p = feat && feat.properties ? feat.properties : {};
+      const keys = ['NAME_1','NAME','DISTRICT','Dist_Name','DISTRICT NAME','DISTNAME','DIST_NAME','district','District'];
+      for(const k of keys){
+        if(p[k] && typeof p[k] === 'string' && p[k].trim().length) return p[k];
+      }
+      return p.NAME_1 || p.DISTRICT || p.name || p.id || '';
+    }
+
+    // Data cache
+    let dataCache = {};
+    let lastFetchTime = {};
+
+    // ---------- Loading CSV data for a year ----------
+    async function loadElectionData(year) {
+      const now = Date.now();
+      if (dataCache[year] && lastFetchTime[year] && (now - lastFetchTime[year] < 120000)) {
+        console.log(`Using cached data for ${year}`);
+        return dataCache[year];
+      }
+
+      let url;
+
+      if (year === "2025") {
+        url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSuZ4RHNfsq6JMIbJhvxtSYANk5e7DNtqCLAu45msrx0Am2PyX7enT6yLyBCkOB5BXmTta104a6AMA4/pub?gid=1682262614&single=true&output=csv";
+      } else {
+        const cacheBuster = new Date().getTime();
+        url = `data/${year}presRegional.csv?t=${cacheBuster}`;
+      }
+
+      try {
+        console.log(`Loading data for ${year} from: ${url}`);
+        const rows = await d3.csv(url);
+        const electionData = {};
+        const partyColors = {};
+
+        rows.forEach(r => {
+          const districtRaw = r["DISTRICT NAME"] || r["DISTRICT"] || r["District"] || r["DIST_NAME"] || r["NAME_1"] || "";
+          const candRaw = r["NAME OF CANDIDATE"] || r["CANDIDATE"] || r["NAME"] || "";
+          const partyRaw = r["PARTY"] || r["PARTY NAME"] || r["Party"] || "";
+          const partyAbbr = r["PARTY ABBR"] || r["PARTY_ABBR"] || r["ABBR"] || partyRaw;
+          const colorRaw = r["PARTY COLOR"] || r["PARTY_COLOR"] || r["COLOR"] || "";
+          const votesRaw = r["VOTES SCORED"] || r["VOTES"] || r["Votes"] || r["VOTES_SCORED"] || "0";
+
+          const district = normalizeName(districtRaw);
+          const candidate = (candRaw || "").trim();
+          const party = (partyRaw || "").trim();
+          const partyAbbreviation = (partyAbbr || "").trim();
+          const color = (colorRaw && colorRaw.trim()) ? colorRaw.trim() : "#999999";
+          let votes = 0;
+          try { votes = parseInt((votesRaw || "0").toString().replace(/,/g, ''), 10) || 0; } catch (e) { votes = 0; }
+
+          if (!district) return;
+
+          partyColors[party] = partyColors[party] || { color: color, abbreviation: partyAbbreviation };
+
+          if (!electionData[district]) electionData[district] = { candidates: {}, color: color };
+          if (!electionData[district].candidates[candidate]) {
+            electionData[district].candidates[candidate] = {
+              name: candidate,
+              party: party,
+              partyAbbr: partyAbbreviation,
+              votes: 0,
+              color: color
+            };
+          }
+          electionData[district].candidates[candidate].votes += votes;
+        });
+
+        // convert candidates into sorted array and pick winner color
+        Object.keys(electionData).forEach(k => {
+          const arr = Object.values(electionData[k].candidates);
+          arr.sort((a, b) => b.votes - a.votes);
+
+          const totalVotes = arr.reduce((sum, c) => sum + c.votes, 0);
+          arr.forEach(candidate => {
+            candidate.percentage = totalVotes > 0 ?
+              Math.round((candidate.votes / totalVotes) * 100) : 0;
+          });
+
+          electionData[k].candidates = arr;
+          if (arr.length > 0) electionData[k].color = arr[0].color || electionData[k].color;
+        });
+
+        // Store in cache
+        const result = { electionData, partyColors };
+        dataCache[year] = result;
+        lastFetchTime[year] = now;
+
+        console.log(`Successfully loaded data for ${year}`);
+        return result;
+
+      } catch (err) {
+        console.warn(`Failed to load CSV for ${year} (${url})`, err);
+
+        if (dataCache[year]) {
+          console.log(`Returning cached data due to fetch error`);
+          return dataCache[year];
+        }
+
+        return { electionData: {}, partyColors: {} };
+      }
+    }
+
+    // ---------- Update candidate and party stats ----------
+    function updateStatsPanels(year) {
+      const dataset = allElectionData[year] || { electionData: {}, partyColors: {} };
+      const ed = dataset.electionData || {};
+      
+      // Calculate candidate totals
+      const candidateTotals = {};
+      const partyDistricts = {};
+      const totalDistricts = Object.keys(ed).length;
+      
+      // Process each district
+      Object.keys(ed).forEach(district => {
+        const districtData = ed[district];
+        
+        if (!districtData.candidates || districtData.candidates.length === 0) {
+          return;
+        }
+        
+        const allZero = districtData.candidates.every(candidate => candidate.votes === 0);
+        if (allZero) {
+          return;
+        }
+        
+        // Count districts won by each party
+        if (districtData.candidates && districtData.candidates.length > 0) {
+          const winningCandidate = districtData.candidates[0];
+          const winningParty = winningCandidate.party;
+          partyDistricts[winningParty] = (partyDistricts[winningParty] || 0) + 1;
+        }
+        
+        // Sum votes for each candidate
+        if (districtData.candidates) {
+          districtData.candidates.forEach(candidate => {
+            if (!candidateTotals[candidate.name]) {
+              candidateTotals[candidate.name] = {
+                votes: 0,
+                party: candidate.party,
+                partyAbbr: candidate.partyAbbr,
+                color: candidate.color
+              };
+            }
+            candidateTotals[candidate.name].votes += candidate.votes;
+          });
+        }
+      });
+      
+      // Convert to arrays and sort
+      const candidateArray = Object.keys(candidateTotals).map(name => ({
+        name,
+        votes: candidateTotals[name].votes,
+        party: candidateTotals[name].party,
+        partyAbbr: candidateTotals[name].partyAbbr,
+        color: candidateTotals[name].color
+      })).sort((a, b) => b.votes - a.votes);
+      
+      const totalVotes = candidateArray.reduce((sum, c) => sum + c.votes, 0);
+      
+      // Calculate percentages
+      candidateArray.forEach(candidate => {
+        candidate.percentage = totalVotes > 0 ? 
+          Math.round((candidate.votes / totalVotes) * 100) : 0;
+      });
+      
+      // Update candidate stats table
+      const candidateTable = d3.select("#candidate-table");
+      candidateTable.selectAll("*").remove();
+      
+      candidateArray.forEach(candidate => {
+        if (candidate.votes > 0) {
+          const row = candidateTable.append("tr");
+          
+          // Add percentage bar as background
+          row.append("td")
+            .attr("colspan", 4)
+            .style("position", "absolute")
+            .style("top", "2px")
+            .style("left", "2px")
+            .style("width", "calc(100% - 4px)")
+            .style("height", "calc(100% - 4px)")
+            .style("z-index", "0")
+            .html(`<div class="percentage-bar-container"><div class="percentage-bar" style="width: ${candidate.percentage}%; background-color: ${candidate.color || '#888'}"></div></div>`);
+          
+          // Candidate name with party abbreviation
+          row.append("td")
+            .html(`${candidate.name} <span class="party-label">${candidate.partyAbbr || candidate.party}</span>`)
+            .style("font-weight", "700");
+          
+          // Percentage
+          row.append("td").attr("class", "percentage")
+            .text(`${candidate.percentage}%`);
+          
+          // Vote count
+          row.append("td").attr("class", "votes")
+            .text(candidate.votes.toLocaleString());
+        }
+      });
+      
+      // Update party stats table
+      const partyTable = d3.select("#party-table");
+      partyTable.selectAll("*").remove();
+      
+      // Convert to array and sort by districts won
+      const partyArray = Object.keys(partyDistricts)
+        .map(party => ({
+          party,
+          districts: partyDistricts[party],
+          color: dataset.partyColors[party]?.color || "#999999",
+          abbreviation: dataset.partyColors[party]?.abbreviation || party
+        }))
+        .sort((a, b) => b.districts - a.districts);
+      
+      partyArray.forEach(party => {
+        const row = partyTable.append("tr");
+        // Party color swatch
+        row.append("td").html(`<span class="party-swatch" style="background:${party.color}"></span>`);
+        row.append("td").text(party.abbreviation).style("font-weight", "700");
+        row.append("td").attr("class", "percentage").text(party.districts);
+      });
+    }
+
+    // ---------- UI: populate years dropdown ----------
+    const yearDropdown = d3.select("#yearDropdown");
+    function buildYearList(){
+      yearDropdown.selectAll("*").remove();
+      years.forEach(y => {
+        yearDropdown.append("button")
+          .attr("type","button")
+          .classed("year-item", true)
+          .classed("active", y === currentYear)
+          .text(y)
+          .on("click", function(){
+            setYear(y);
+            hideYearDropdown();
+          });
+      });
+    }
+    buildYearList();
+
+    // Make header clickable for dropdown
+    d3.select("#page-title").on("click", function(){
+      const expanded = yearDropdown.style("display") === "block";
+      if(expanded) hideYearDropdown(); else showYearDropdown();
+    });
+
+    function showYearDropdown(){
+      yearDropdown.style("display","block").attr("aria-hidden","false");
+    }
+    
+    function hideYearDropdown(){
+      yearDropdown.style("display","none").attr("aria-hidden","true");
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(event) {
+      const isClickInsideHeader = event.target.closest('.header');
+      if (!isClickInsideHeader) {
+        hideYearDropdown();
+      }
+    });
+
+    // ---------- Projection sizing ----------
+    function updateProjection(){
+      width = mapRoot.clientWidth;
+      height = mapRoot.clientHeight;
+      svg.attr("viewBox", `0 0 ${width} ${height}`);
+      projection.scale(Math.min(width, height) * 10.5)
+                .translate([width / 2, height / 2 + 40]);
+      path.projection(projection);
+    }
+
+    // ---------- Info panel builder with vote percentages ----------
+    function buildInfoPanelHtml(feature, year){
+      const dnameRaw = featureDistrictName(feature);
+      const dname = normalizeName(dnameRaw);
+      const dataset = allElectionData[year] || { electionData: {} };
+      const districtData = dataset.electionData[dname];
+
+      // Update panel titles
+      infoPanelTitle.text(dnameRaw || "Unknown District");
+      infoPanelSubtitle.text(`District votes (${year})`);
+
+      let html = "";
+      if(!districtData || !districtData.candidates || districtData.candidates.length === 0){
+        html = `<div class="meta">No election data available for ${escapeHtml(year)}</div>`;
+        return html;
+      }
+      
+      // Check if all votes are zero
+      const allZero = districtData.candidates.every(candidate => candidate.votes === 0);
+      if (allZero) {
+        html = `<div class="meta">No votes recorded for ${escapeHtml(year)}</div>`;
+        return html;
+      }
+      
+      html = `<table>`;
+      districtData.candidates.forEach((c, i) => {
+        const isWinner = i === 0;
+        
+        html += `
+          <tr>
+            <td colspan="4" style="position: absolute; left: 2px; width: calc(100% - 4px); height: calc(100% - 4px); z-index: 0;">
+              <div class="percentage-bar-container">
+                <div class="percentage-bar" style="width: ${c.percentage}%; background-color: ${c.color || '#888'}"></div>
+              </div>
+            </td>
+            <td style="font-weight:700">${escapeHtml(c.name || '')}${isWinner ? '<span class="winner-badge">WINNER</span>' : ''} <span class="party-label">${c.partyAbbr || c.party}</span></td>
+            <td style="text-align:right; color:#333; width:60px; font-weight:700">${c.percentage}%</td>
+            <td style="text-align:right; color:#666; width:80px; font-size:16px">${(c.votes||0).toLocaleString()}</td>
+          </tr>`;
+      });
+      html += `</table>`;
+      return html;
+    }
+
+    function escapeHtml(s){ return (s||'').toString().replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[ch])); }
+
+    // ---------- Update fills for current year ----------
+    function updateMapForYear(year){
+      const dataset = allElectionData[year] || { electionData: {}, partyColors: {} };
+      const ed = dataset.electionData || {};
+      if(!districtSelection) return;
+      districtSelection.transition().duration(220)
+        .attr("fill", d => {
+          const dName = normalizeName(featureDistrictName(d));
+          const districtData = ed[dName];
+          
+          if (!districtData || !districtData.candidates || districtData.candidates.length === 0) {
+            return "#f5f5f5";
+          }
+          
+          const allZero = districtData.candidates.every(candidate => candidate.votes === 0);
+          if (allZero) {
+            return "#f5f5f5";
+          }
+          
+          return districtData.color || "#bdbdbd";
+        });
+    }
+
+    // ---------- Zooming behavior ----------
+    function initZoom(){
+      zoomBehavior = d3.zoom()
+        .scaleExtent([1, 12])
+        .on("zoom", (event) => {
+          mapGroup.attr("transform", event.transform);
+        });
+      svg.call(zoomBehavior);
+    }
+
+    // Programmatic focus on feature
+    function focusOnFeature(feature){
+      const bounds = path.bounds(feature);
+      const dx = bounds[1][0] - bounds[0][0];
+      const dy = bounds[1][1] - bounds[0][1];
+      const x = (bounds[0][0] + bounds[1][0]) / 2;
+      const y = (bounds[0][1] + bounds[1][1]) / 2;
+      
+      const scale = Math.max(1, Math.min(30, 0.9 / Math.max(dx / (width * 0.8), dy / (height * 1.4))));
+      const translate = [width * 0.5 - scale * x, height * 0.5 - scale * y];
+
+      svg.transition().duration(2400).call(zoomBehavior.transform, d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale));
+    }
+
+    function resetView(){
+      selectedFeature = null;
+      selectedFeatureId = null;
+      svg.transition().duration(2000).call(zoomBehavior.transform, d3.zoomIdentity);
+      
+      if(districtSelection) {
+        districtSelection.classed("faded", false).classed("focused", false);
+      }
+    
+      // Hide all panels
+      hideAllPanels();
+      
+      // Show header again
+      header.classed("hidden", false);
+      
+      // Reset map to full height
+      mapRoot.style.height = "100vh";
+    }
+
+    // ---------- Panel Management ----------
+    function showPanel(panel) {
+      // Hide any currently active panel
+      hideAllPanels();
+      
+      // Set the map to half height
+      mapRoot.style.height = "50vh";
+      
+      // Show the requested panel with a slight delay to ensure CSS applies
+      setTimeout(() => {
+        panel.classed("visible", true).attr("aria-hidden", "false");
+        activePanel = panel;
+      }, 10);
+      
+      // Hide header when panel is shown
+      header.classed("hidden", true);
+    }
+    
+    function hideAllPanels() {
+      infoPanel.classed("visible", false).attr("aria-hidden", "true");
+      candidateStats.classed("visible", false).attr("aria-hidden", "true");
+      partyStats.classed("visible", false).attr("aria-hidden", "true");
+      searchPanel.classed("visible", false).attr("aria-hidden", "true");
+      activePanel = null;
+      
+      // Reset map to full height if no district is selected
+      if (!selectedFeature) {
+        mapRoot.style.height = "100vh";
+        header.classed("hidden", false);
+      }
+    }
+
+    // ---------- Search functionality ----------
+    function setupSearchFunctionality() {
+      // Set up search button handler
+      searchButton.on("click", function() {
+        showPanel(searchPanel);
+        // Clear previous results
+        searchResults.html("");
+        districtSearch.node().value = "";
+      });
+      
+      // Set up search functionality
+      districtSearch.on("input", function() {
+        const query = this.value.toLowerCase().trim();
+        if (query.length < 2) {
+          searchResults.html("");
+          return;
+        }
+        
+        if (!geoData || !geoData.features) return;
+        
+        // Filter districts based on query
+        const filteredDistricts = geoData.features.filter(feature => {
+          if (isLake(feature)) return false;
+          const name = featureDistrictName(feature).toLowerCase();
+          return name.includes(query);
+        });
+        
+        // Display results
+        searchResults.html("");
+        if (filteredDistricts.length === 0) {
+          searchResults.append("div")
+            .attr("class", "search-result-item")
+            .text("No districts found");
+          return;
+        }
+        
+        filteredDistricts.forEach(district => {
+          const name = featureDistrictName(district);
+          searchResults.append("div")
+            .attr("class", "search-result-item")
+            .text(name)
+            .on("click", function() {
+              onDistrictClick(null, district);
+              hideAllPanels();
+            });
+        });
+      });
+    }
+    
+    function isLake(f){
+      const p = f.properties || {};
+      const t = (p.TYPE || p.type || "").toString().toLowerCase();
+      const n = (p.NAME || p.NAME_1 || p.name || "").toString().toLowerCase();
+      return t.includes("lake") || n.includes("lake");
+    }
+
+    // ---------- Click handler (toggle zoom) ----------
+    function onDistrictClick(event, d){
+      // if this feature is already selected, zoom out
+      const id = d.id || (d.properties && (d.properties.id || d.properties.NAME_1 || d.properties.DISTRICT)) || null;
+
+      if(selectedFeature && selectedFeatureId === id){
+        resetView();
+        return;
+      }
+
+      // else focus this feature
+      selectedFeature = d;
+      selectedFeatureId = id;
+
+      // Hide header when district is selected
+      header.classed("hidden", true);
+
+      // focus / zoom to top half
+      focusOnFeature(d);
+
+      // fade others, highlight this
+      districtSelection.classed("faded", dd => dd !== d);
+      d3.select(this).classed("faded", false).classed("focused", true).raise();
+
+      // Set map to half height
+      mapRoot.style.height = "50vh";
+
+      // Show info panel in bottom half
+      showPanel(infoPanel);
+
+      // build info panel content
+      infoPanelContent.html(buildInfoPanelHtml(d, currentYear));
+    }
+    
+    // ---------- Set year function ----------
+    function setYear(year) {
+      if (!years.includes(year)) return;
+      
+      currentYear = year;
+      // mark active visually
+      yearDropdown.selectAll("button").classed("active", d => false);
+      yearDropdown.selectAll("button").filter(d => d === year).classed("active", true);
+      // update header text
+      d3.select("#page-title").text(`Malawi Presidential Election — ${year}`);
+      // update map colors
+      updateMapForYear(currentYear);
+      // update stats panels
+      updateStatsPanels(currentYear);
+      // Show/hide footer for 2025
+      if (year === "2025") {
+        footer.style("display", "block");
+      } else {
+        footer.style("display", "none");
+      }
+      // reset view so colors show across full map
+      resetView();
+    }
+
+    // ---------- Load geojson + CSVs and draw map ----------
+    try {
+      // Show loading indicator
+      loadingIndicator.style("display", "flex");
+      
+      // 1) load geojson
+      const geo = await d3.json("data/malawi_districts.geojson");
+      geoData = geo;
+
+      // 2) load CSVs for all years in parallel
+      const csvPromises = years.map(y => loadElectionData(y));
+      const results = await Promise.all(csvPromises);
+      years.forEach((y,i) => allElectionData[y] = results[i] || { electionData: {}, partyColors: {} });
+
+      // 3) prepare projection and path
+      updateProjection();
+
+      // 4) separate lakes and districts
+      const features = geoData.features || [];
+      const lakes = features.filter(isLake);
+      const districts = features.filter(f => !isLake(f));
+
+      // 5) draw lakes first
+      lakeSelection = mapGroup.append("g").attr("class","lakes")
+        .selectAll("path")
+        .data(lakes)
+        .enter()
+        .append("path")
+        .attr("class","lake")
+        .attr("d", path);
+
+      // 6) draw districts
+      districtSelection = mapGroup.append("g").attr("class","districts")
+        .selectAll("path")
+        .data(districts)
+        .enter()
+        .append("path")
+        .attr("class","district")
+        .attr("d", path)
+        .attr("fill", d => {
+          const dname = normalizeName(featureDistrictName(d));
+          const yearData = allElectionData[currentYear] || { electionData: {} };
+          return (yearData.electionData[dname] ? yearData.electionData[dname].color : "#f5f5f5");
+        })
+        .on("click", onDistrictClick)
+        .on("touchstart", onDistrictClick)
+        .on("mouseover", function(event, d){
+          d3.select(this).raise();
+          d3.select(this).classed("focused", true);
+        })
+        .on("mouseout", function(event, d){
+          const id = d.id || (d.properties && (d.properties.id || d.properties.NAME_1 || d.properties.DISTRICT)) || null;
+          if(selectedFeatureId !== id) d3.select(this).classed("focused", false);
+        });
+
+      // 7) initialize zoom
+      initZoom();
+
+      // 8) initial UI state
+      d3.select("#page-title").text(`Malawi Presidential Election — ${currentYear}`);
+
+      // 9) update stats panels
+      updateStatsPanels(currentYear);
+
+      // 10) Show/hide footer for 2025
+      if (currentYear === "2025") {
+        footer.style("display", "block");
+      }
+
+      // 11) Set up control button handlers
+      votesButton.on("click", function() {
+        showPanel(candidateStats);
+      });
+      
+      districtsButton.on("click", function() {
+        showPanel(partyStats);
+      });
+      
+      // Set up search functionality
+      setupSearchFunctionality();
+      
+      // 12) Set up close button handlers
+      d3.selectAll(".close-button").on("click", function() {
+        hideAllPanels();
+        // If a district was selected, keep the map at half height
+        if (selectedFeature) {
+          mapRoot.style.height = "50vh";
+        } else {
+          resetView();
+        }
+      });
+
+      // 13) global click on background resets (click on svg not on district)
+      svg.on("click", (event) => {
+        const target = event.target;
+        if(target && target.tagName && target.tagName.toLowerCase() === 'svg'){
+          resetView();
+        }
+      });
+
+      // 14) handle window resize
+      window.addEventListener("resize", () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+          updateProjection();
+          svg.selectAll("path").attr("d", path);
+        }, 250);
+      });
+
+      // 15) populate year dropdown (UI)
+      buildYearList();
+
+      // 16) helper: updateMapForYear initial
+      updateMapForYear(currentYear);
+
+      // Hide loading indicator
+      loadingIndicator.style("display", "none");
+      
+      console.log("Mobile map loaded.");
+    } catch(err){
+      console.error("Initialization error:", err);
+      alert("Error loading map or data. Check console for details.");
+      loadingIndicator.style("display", "none");
+    }
+  })();
+  </script>
+</body>
+</html>
