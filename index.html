@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loading Optimal Experience</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: #f8f9fa;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+            color: #333;
+        }
+        
+        .container {
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+            padding: 2rem;
+        }
+        
+        .loader {
+            margin: 2rem auto;
+            width: 60px;
+            height: 60px;
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-radius: 50%;
+            border-top: 4px solid #4361ee;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 1rem;
+            color: #212529;
+        }
+        
+        p {
+            font-size: 1.1rem;
+            color: #6c757d;
+            line-height: 1.5;
+        }
+        
+        .device-info {
+            margin-top: 2rem;
+            padding: 1rem;
+            background: #e9ecef;
+            border-radius: 8px;
+            display: inline-block;
+        }
+        
+        .countdown {
+            margin-top: 1.5rem;
+            font-size: 1rem;
+            color: #495057;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Loading Optimal Experience</h1>
+        <p>We're detecting your device to provide the best experience</p>
+        
+        <div class="loader"></div>
+        
+        <div class="device-info" id="deviceInfo" style="display: none;">
+            <p id="deviceText">Device detected: <span id="deviceType"></span></p>
+        </div>
+        
+        <div class="countdown" id="countdown" style="display: none;">
+            Redirecting in <span id="count">3</span> seconds
+        </div>
+    </div>
+
+    <script>
+        function detectDevice() {
+            // Show loading for a moment before detection
+            setTimeout(() => {
+                // Device detection logic
+                const isMobile = window.innerWidth <= 768 || ('ontouchstart' in window);
+                
+                const deviceInfo = document.getElementById('deviceInfo');
+                const deviceType = document.getElementById('deviceType');
+                const countdown = document.getElementById('countdown');
+                const count = document.getElementById('count');
+                
+                if (isMobile) {
+                    deviceType.textContent = 'Mobile';
+                    // Redirect to mobile version
+                    startCountdown('mobile.html');
+                } else {
+                    deviceType.textContent = 'Desktop/Tablet';
+                    // Redirect to desktop version
+                    startCountdown('desktop.html');
+                }
+                
+                // Show device info and countdown
+                deviceInfo.style.display = 'inline-block';
+                countdown.style.display = 'block';
+                
+            }, 1500); // Show loader for 1.5 seconds before detection
+        }
+        
+        function startCountdown(redirectUrl) {
+            let seconds = 3;
+            const count = document.getElementById('count');
+            const countdown = setInterval(() => {
+                count.textContent = seconds;
+                seconds--;
+                
+                if (seconds < 0) {
+                    clearInterval(countdown);
+                    window.location.href = redirectUrl;
+                }
+            }, 1000);
+        }
+        
+        // Start detection when page loads
+        window.addEventListener('load', detectDevice);
+    </script>
+</body>
+</html>
