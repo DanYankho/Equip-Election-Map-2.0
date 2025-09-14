@@ -559,7 +559,18 @@
   </div>
 
   <script>
-  (async function(){
+  (function(){
+    // Performance optimization flags
+    const isSlowDevice = /(android|iphone|ipod|ipad).*os\s([0-9]+)_/i.test(navigator.userAgent) && 
+                         parseInt(RegExp.$2, 10) < 12 || 
+                         /Android [0-7]/.test(navigator.userAgent) ||
+                         /MSIE|Trident/.test(navigator.userAgent);
+    
+    // Disable expensive effects on slow devices
+    if (isSlowDevice) {
+      document.documentElement.classList.add('slow-device');
+    }
+
     // ---------- CONFIG ----------
     const years = ["1994","1999","2004","2009","2014","2019","2020","2025"];
     let currentYear = years[0];
@@ -625,6 +636,7 @@
     // Performance optimization cache
     const centroidCache = new Map();
     let resizeTimeout = null;
+    let debounceTimer = null;
 
     // Normalize function
     function normalizeName(name){
@@ -645,6 +657,29 @@
     // Data cache
     let dataCache = {};
     let lastFetchTime = {};
+
+    // Debounce function for performance
+    function debounce(func, wait) {
+      return function() {
+        const context = this, args = arguments;
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => func.apply(context, args), wait);
+      };
+    }
+
+    // Throttle function for performance
+    function throttle(func, limit) {
+      let inThrottle;
+      return function() {
+        const args = arguments;
+        const context = this;
+        if (!inThrottle) {
+          func.apply(context, args);
+          inThrottle = true;
+          setTimeout(() => inThrottle = false, limit);
+        }
+      };
+    }
 
     // ---------- Loading CSV data for a year ----------
     async function loadElectionData(year) {
@@ -980,9 +1015,9 @@
     function initZoom(){
       zoomBehavior = d3.zoom()
         .scaleExtent([1, 12])
-        .on("zoom", (event) => {
+        .on("zoom", throttle((event) => {
           mapGroup.attr("transform", event.transform);
-        });
+        }, isSlowDevice ? 100 : 16)); // Throttle zoom events on slow devices
       svg.call(zoomBehavior);
     }
 
@@ -997,13 +1032,13 @@
       const scale = Math.max(1, Math.min(30, 0.9 / Math.max(dx / (width * 0.8), dy / (height * 1.4))));
       const translate = [width * 0.5 - scale * x, height * 0.5 - scale * y];
 
-      svg.transition().duration(2400).call(zoomBehavior.transform, d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale));
+      svg.transition().duration(isSlowDevice ? 1200 : 2400).call(zoomBehavior.transform, d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale));
     }
 
     function resetView(){
       selectedFeature = null;
       selectedFeatureId = null;
-      svg.transition().duration(2000).call(zoomBehavior.transform, d3.zoomIdentity);
+      svg.transition().duration(isSlowDevice ? 1000 : 2000).call(zoomBehavior.transform, d3.zoomIdentity);
       
       if(districtSelection) {
         districtSelection.classed("faded", false).classed("focused", false);
@@ -1061,8 +1096,8 @@
         districtSearch.node().value = "";
       });
       
-      // Set up search functionality
-      districtSearch.on("input", function() {
+      // Set up search functionality with debouncing
+      districtSearch.on("input", debounce(function() {
         const query = this.value.toLowerCase().trim();
         if (query.length < 2) {
           searchResults.html("");
@@ -1097,7 +1132,7 @@
               hideAllPanels();
             });
         });
-      });
+      }, isSlowDevice ? 300 : 150)); // Longer debounce on slow devices
     }
     
     function isLake(f){
@@ -1166,129 +1201,133 @@
     }
 
     // ---------- Load geojson + CSVs and draw map ----------
-    try {
-      // Show loading indicator
-      loadingIndicator.style("display", "flex");
-      
-      // 1) load geojson
-      const geo = await d3.json("data/malawi_districts.geojson");
-      geoData = geo;
+    async function initializeMap() {
+      try {
+        // Show loading indicator
+        loadingIndicator.style("display", "flex");
+        
+        // 1) load geojson
+        const geo = await d3.json("data/malawi_districts.geojson");
+        geoData = geo;
 
-      // 2) load CSVs for all years in parallel
-      const csvPromises = years.map(y => loadElectionData(y));
-      const results = await Promise.all(csvPromises);
-      years.forEach((y,i) => allElectionData[y] = results[i] || { electionData: {}, partyColors: {} });
+        // 2) load CSVs for all years in parallel
+        const csvPromises = years.map(y => loadElectionData(y));
+        const results = await Promise.all(csvPromises);
+        years.forEach((y,i) => allElectionData[y] = results[i] || { electionData: {}, partyColors: {} });
 
-      // 3) prepare projection and path
-      updateProjection();
+        // 3) prepare projection and path
+        updateProjection();
 
-      // 4) separate lakes and districts
-      const features = geoData.features || [];
-      const lakes = features.filter(isLake);
-      const districts = features.filter(f => !isLake(f));
+        // 4) separate lakes and districts
+        const features = geoData.features || [];
+        const lakes = features.filter(isLake);
+        const districts = features.filter(f => !isLake(f));
 
-      // 5) draw lakes first
-      lakeSelection = mapGroup.append("g").attr("class","lakes")
-        .selectAll("path")
-        .data(lakes)
-        .enter()
-        .append("path")
-        .attr("class","lake")
-        .attr("d", path);
+        // 5) draw lakes first
+        lakeSelection = mapGroup.append("g").attr("class","lakes")
+          .selectAll("path")
+          .data(lakes)
+          .enter()
+          .append("path")
+          .attr("class","lake")
+          .attr("d", path);
 
-      // 6) draw districts
-      districtSelection = mapGroup.append("g").attr("class","districts")
-        .selectAll("path")
-        .data(districts)
-        .enter()
-        .append("path")
-        .attr("class","district")
-        .attr("d", path)
-        .attr("fill", d => {
-          const dname = normalizeName(featureDistrictName(d));
-          const yearData = allElectionData[currentYear] || { electionData: {} };
-          return (yearData.electionData[dname] ? yearData.electionData[dname].color : "#f5f5f5");
-        })
-        .on("click", onDistrictClick)
-        .on("touchstart", onDistrictClick)
-        .on("mouseover", function(event, d){
-          d3.select(this).raise();
-          d3.select(this).classed("focused", true);
-        })
-        .on("mouseout", function(event, d){
-          const id = d.id || (d.properties && (d.properties.id || d.properties.NAME_1 || d.properties.DISTRICT)) || null;
-          if(selectedFeatureId !== id) d3.select(this).classed("focused", false);
+        // 6) draw districts - simplified for performance
+        districtSelection = mapGroup.append("g").attr("class","districts")
+          .selectAll("path")
+          .data(districts)
+          .enter()
+          .append("path")
+          .attr("class","district")
+          .attr("d", path)
+          .attr("fill", d => {
+            const dname = normalizeName(featureDistrictName(d));
+            const yearData = allElectionData[currentYear] || { electionData: {} };
+            return (yearData.electionData[dname] ? yearData.electionData[dname].color : "#f5f5f5");
+          })
+          .on("click", onDistrictClick)
+          .on("touchstart", onDistrictClick)
+          .on("mouseover", function(event, d){
+            if (isSlowDevice) return; // Skip hover effects on slow devices
+            d3.select(this).raise();
+            d3.select(this).classed("focused", true);
+          })
+          .on("mouseout", function(event, d){
+            if (isSlowDevice) return; // Skip hover effects on slow devices
+            const id = d.id || (d.properties && (d.properties.id || d.properties.NAME_1 || d.properties.DISTRICT)) || null;
+            if(selectedFeatureId !== id) d3.select(this).classed("focused", false);
+          });
+
+        // 7) initialize zoom
+        initZoom();
+
+        // 8) initial UI state
+        d3.select("#page-title").text(`Malawi Presidential Election — ${currentYear}`);
+
+        // 9) update stats panels
+        updateStatsPanels(currentYear);
+
+        // 10) Show/hide footer for 2025
+        if (currentYear === "2025") {
+          footer.style("display", "block");
+        }
+
+        // 11) Set up control button handlers
+        votesButton.on("click", function() {
+          showPanel(candidateStats);
+        });
+        
+        districtsButton.on("click", function() {
+          showPanel(partyStats);
+        });
+        
+        // Set up search functionality
+        setupSearchFunctionality();
+        
+        // 12) Set up close button handlers
+        d3.selectAll(".close-button").on("click", function() {
+          hideAllPanels();
+          // If a district was selected, keep the map at half height
+          if (selectedFeature) {
+            mapRoot.style.height = "50vh";
+          } else {
+            resetView();
+          }
         });
 
-      // 7) initialize zoom
-      initZoom();
+        // 13) global click on background resets (click on svg not on district)
+        svg.on("click", (event) => {
+          const target = event.target;
+          if(target && target.tagName && target.tagName.toLowerCase() === 'svg'){
+            resetView();
+          }
+        });
 
-      // 8) initial UI state
-      d3.select("#page-title").text(`Malawi Presidential Election — ${currentYear}`);
-
-      // 9) update stats panels
-      updateStatsPanels(currentYear);
-
-      // 10) Show/hide footer for 2025
-      if (currentYear === "2025") {
-        footer.style("display", "block");
-      }
-
-      // 11) Set up control button handlers
-      votesButton.on("click", function() {
-        showPanel(candidateStats);
-      });
-      
-      districtsButton.on("click", function() {
-        showPanel(partyStats);
-      });
-      
-      // Set up search functionality
-      setupSearchFunctionality();
-      
-      // 12) Set up close button handlers
-      d3.selectAll(".close-button").on("click", function() {
-        hideAllPanels();
-        // If a district was selected, keep the map at half height
-        if (selectedFeature) {
-          mapRoot.style.height = "50vh";
-        } else {
-          resetView();
-        }
-      });
-
-      // 13) global click on background resets (click on svg not on district)
-      svg.on("click", (event) => {
-        const target = event.target;
-        if(target && target.tagName && target.tagName.toLowerCase() === 'svg'){
-          resetView();
-        }
-      });
-
-      // 14) handle window resize
-      window.addEventListener("resize", () => {
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(() => {
+        // 14) handle window resize with debounce
+        window.addEventListener("resize", debounce(() => {
           updateProjection();
           svg.selectAll("path").attr("d", path);
-        }, 250);
-      });
+        }, 250));
 
-      // 15) populate year dropdown (UI)
-      buildYearList();
+        // 15) populate year dropdown (UI)
+        buildYearList();
 
-      // 16) helper: updateMapForYear initial
-      updateMapForYear(currentYear);
+        // 16) helper: updateMapForYear initial
+        updateMapForYear(currentYear);
 
-      // Hide loading indicator
-      loadingIndicator.style("display", "none");
-      
-      console.log("Mobile map loaded.");
-    } catch(err){
-      console.error("Initialization error:", err);
-      alert("Error loading map or data. Check console for details.");
-      loadingIndicator.style("display", "none");
+        // Hide loading indicator
+        loadingIndicator.style("display", "none");
+        
+        console.log("Mobile map loaded.");
+      } catch(err){
+        console.error("Initialization error:", err);
+        alert("Error loading map or data. Check console for details.");
+        loadingIndicator.style("display", "none");
+      }
     }
+
+    // Start initialization
+    initializeMap();
   })();
   </script>
 </body>
