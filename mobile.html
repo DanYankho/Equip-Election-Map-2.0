@@ -602,12 +602,6 @@
       "NSANJE": "NS", "PHALOMBE": "PH", "THYOLO": "TH", "ZOMBA": "ZA"
     };
 
-    // Helper function to get district abbreviation
-    function getDistrictAbbreviation(districtName) {
-      const normalized = normalizeName(districtName);
-      return districtAbbreviations[normalized] || normalized.substring(0, 2);
-    }
-
     // UI Elements
     const mapRoot = document.getElementById("map-root");
     const svg = d3.select("#map-svg");
@@ -1194,7 +1188,7 @@
 
       // fade others, highlight this
       districtSelection.classed("faded", dd => dd !== d);
-      d3.select(this).classed("faded", false).classed("focused", true).raise();
+      d3.select(event.currentTarget).classed("faded", false).classed("focused", true).raise();
 
       // Set map to half height
       mapRoot.style.height = "50vh";
@@ -1275,11 +1269,13 @@
             const yearData = allElectionData[currentYear] || { electionData: {} };
             return (yearData.electionData[dname] ? yearData.electionData[dname].color : "#f5f5f5");
           })
-          .on("click", onDistrictClick)
+          .on("click", function(event, d) {
+            onDistrictClick(event, d);
+          })
           .on("touchstart", function(event, d) {
             // Improved touch handling for mobile devices
             event.preventDefault();
-            onDistrictClick.call(this, event, d);
+            onDistrictClick(event, d);
           })
           .on("mouseover", function(event, d){
             if (isSlowDevice) return; // Skip hover effects on slow devices
