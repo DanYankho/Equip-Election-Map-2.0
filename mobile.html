@@ -21,6 +21,7 @@
 
     * {
       box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
     }
 
     html, body {
@@ -231,6 +232,7 @@
       height: calc(100% - 60px);
       overflow-y: auto;
       padding: 0 16px 16px;
+      -webkit-overflow-scrolling: touch;
     }
     
     .panel-title { 
@@ -391,6 +393,7 @@
     .search-results {
       max-height: 300px;
       overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }
     
     .search-result-item {
@@ -479,6 +482,19 @@
       .stats-title { font-size: 20px; }
       .info-panel table, .stats-table { font-size: 14px; }
       .stats-table tr { height: 45px; }
+    }
+    
+    /* Performance optimizations for slow devices */
+    .slow-device .district {
+      transition: none !important;
+    }
+    
+    .slow-device .district:hover {
+      filter: none !important;
+    }
+    
+    .slow-device .control-button {
+      transition: none !important;
     }
   </style>
 </head>
@@ -632,6 +648,7 @@
     let selectedFeature = null;
     let selectedFeatureId = null;
     let activePanel = null;
+    let isZooming = false;
 
     // Performance optimization cache
     const centroidCache = new Map();
@@ -1023,6 +1040,9 @@
 
     // Programmatic focus on feature
     function focusOnFeature(feature){
+      if (isZooming) return;
+      isZooming = true;
+      
       const bounds = path.bounds(feature);
       const dx = bounds[1][0] - bounds[0][0];
       const dy = bounds[1][1] - bounds[0][1];
@@ -1032,13 +1052,20 @@
       const scale = Math.max(1, Math.min(30, 0.9 / Math.max(dx / (width * 0.8), dy / (height * 1.4))));
       const translate = [width * 0.5 - scale * x, height * 0.5 - scale * y];
 
-      svg.transition().duration(isSlowDevice ? 1200 : 2400).call(zoomBehavior.transform, d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale));
+      svg.transition().duration(isSlowDevice ? 1200 : 2400)
+        .call(zoomBehavior.transform, d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale))
+        .on("end", () => { isZooming = false; });
     }
 
     function resetView(){
+      if (isZooming) return;
+      isZooming = true;
+      
       selectedFeature = null;
       selectedFeatureId = null;
-      svg.transition().duration(isSlowDevice ? 1000 : 2000).call(zoomBehavior.transform, d3.zoomIdentity);
+      svg.transition().duration(isSlowDevice ? 1000 : 2000)
+        .call(zoomBehavior.transform, d3.zoomIdentity)
+        .on("end", () => { isZooming = false; });
       
       if(districtSelection) {
         districtSelection.classed("faded", false).classed("focused", false);
@@ -1144,6 +1171,9 @@
 
     // ---------- Click handler (toggle zoom) ----------
     function onDistrictClick(event, d){
+      // Prevent multiple rapid taps
+      if (isZooming) return;
+      
       // if this feature is already selected, zoom out
       const id = d.id || (d.properties && (d.properties.id || d.properties.NAME_1 || d.properties.DISTRICT)) || null;
 
@@ -1246,7 +1276,11 @@
             return (yearData.electionData[dname] ? yearData.electionData[dname].color : "#f5f5f5");
           })
           .on("click", onDistrictClick)
-          .on("touchstart", onDistrictClick)
+          .on("touchstart", function(event, d) {
+            // Improved touch handling for mobile devices
+            event.preventDefault();
+            onDistrictClick.call(this, event, d);
+          })
           .on("mouseover", function(event, d){
             if (isSlowDevice) return; // Skip hover effects on slow devices
             d3.select(this).raise();
@@ -1284,15 +1318,9 @@
         // Set up search functionality
         setupSearchFunctionality();
         
-        // 12) Set up close button handlers
+        // 12) Set up close button handlers - FIXED to reset view
         d3.selectAll(".close-button").on("click", function() {
-          hideAllPanels();
-          // If a district was selected, keep the map at half height
-          if (selectedFeature) {
-            mapRoot.style.height = "50vh";
-          } else {
-            resetView();
-          }
+          resetView();
         });
 
         // 13) global click on background resets (click on svg not on district)
