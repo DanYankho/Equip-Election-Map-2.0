@@ -45,7 +45,6 @@
       right: var(--mobile-padding);
       z-index: 75;
       pointer-events: none;
-      transition: opacity 300ms ease, visibility 300ms ease;
       text-align: center;
     }
     
@@ -113,7 +112,6 @@
       left: 0;
       top: 0;
       overflow: hidden;
-      transition: height 0.3s ease;
     }
     
     svg { 
@@ -122,16 +120,13 @@
       display:block; 
     }
 
-    /* District, lake styles */
+    /* District, lake styles - SIMPLIFIED ANIMATIONS */
     .district {
       stroke: #333;
       stroke-width: 2px;
       cursor: pointer;
-      transition: stroke-width 120ms ease, filter 120ms ease, opacity 120ms ease;
       paint-order: stroke;
     }
-    
-    .district:hover { stroke-width: 2px; filter: drop-shadow(0 2px 10px rgba(0,0,0,0.08)); }
     
     .lake {
       fill: #cfe9ff;
@@ -139,12 +134,11 @@
       stroke-width: 0.4px;
     }
     
-    .faded { opacity: 0.12; }
+    .faded { opacity: 0.3; }
     
     .focused { 
-      stroke-width: 2px; 
-      filter: drop-shadow(0 2px 14px rgba(255,215,0,0.6));
-      z-index: 10;
+      stroke-width: 3px;
+      stroke: #333333;
     }
 
     /* ---------- Control Buttons ---------- */
@@ -185,12 +179,6 @@
       justify-content: center;
       font-size: 20px;
       cursor: pointer;
-      transition: transform 0.2s ease, background 0.2s ease;
-    }
-    
-    .control-button:hover {
-      transform: scale(1.1);
-      background: rgba(255, 255, 255, 1);
     }
     
     .control-button.active {
@@ -209,7 +197,6 @@
       border-top: 1px solid rgba(0,0,0,0.08);
       z-index: 90;
       overflow: hidden;
-      transition: height 0.3s ease;
       padding: 0;
       transform: translateY(100%);
     }
@@ -268,6 +255,7 @@
     .info-panel tr { 
       border-bottom: 1px solid #eee;
       position: relative;
+      height: 50px;
     }
     
     .info-panel tr:last-child {
@@ -303,13 +291,13 @@
     .stats-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 18px; /* Increased font size */
+      font-size: 18px;
     }
     
     .stats-table tr {
       border-bottom: 1px solid #eee;
       position: relative;
-      height: 50px; /* Increased row height */
+      height: 50px;
     }
     
     .stats-table tr:last-child {
@@ -317,7 +305,7 @@
     }
     
     .stats-table td {
-      padding: 14px 8px; /* Increased padding */
+      padding: 14px 8px;
       vertical-align: middle;
       position: relative;
       z-index: 1;
@@ -348,8 +336,8 @@
 
     /* Party swatch */
     .party-swatch { 
-      width: 20px; /* Increased size */
-      height: 20px; /* Increased size */
+      width: 20px;
+      height: 20px;
       display: inline-block; 
       border-radius: 4px; 
       margin-right: 10px; 
@@ -373,7 +361,6 @@
       height: 100%;
       border-radius: 8px;
       opacity: 0.5;
-      transition: width 0.5s ease;
     }
 
     /* Search panel styles */
@@ -457,17 +444,18 @@
       position: absolute;
       top: 12px;
       right: 12px;
-      width: 36px;
-      height: 36px;
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
       background: rgba(0,0,0,0.05);
       border: none;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 20px;
+      font-size: 24px;
       cursor: pointer;
       z-index: 100;
+      touch-action: manipulation;
     }
     
     .close-button:hover {
@@ -482,19 +470,11 @@
       .stats-title { font-size: 20px; }
       .info-panel table, .stats-table { font-size: 14px; }
       .stats-table tr { height: 45px; }
-    }
-    
-    /* Performance optimizations for slow devices */
-    .slow-device .district {
-      transition: none !important;
-    }
-    
-    .slow-device .district:hover {
-      filter: none !important;
-    }
-    
-    .slow-device .control-button {
-      transition: none !important;
+      .close-button {
+        width: 36px;
+        height: 36px;
+        font-size: 20px;
+      }
     }
   </style>
 </head>
@@ -582,11 +562,6 @@
                          /Android [0-7]/.test(navigator.userAgent) ||
                          /MSIE|Trident/.test(navigator.userAgent);
     
-    // Disable expensive effects on slow devices
-    if (isSlowDevice) {
-      document.documentElement.classList.add('slow-device');
-    }
-
     // ---------- CONFIG ----------
     const years = ["1994","1999","2004","2009","2014","2019","2020","2025"];
     let currentYear = years[0];
@@ -597,7 +572,7 @@
       "NKHATA BAY": "NB", "RUMPHI": "RU", "DEDZA": "DE", "DOWA": "DO", 
       "KASUNGU": "KU", "LILONGWE": "LL", "MCHINJI": "MI", "NKHOTAKOTA": "NK", 
       "NENO": "NE", "NTCHEU": "NT", "NTCHISI": "NC", "SALIMA": "SA", 
-      "BALAKA": "BA", "BLANTYRE": "BT", "CHIKWAWA": "CK", "CHIRADZULU": "CR", 
+      "BALAKA": "BA", "BLANTYRE": "BT", "CHIKWAWA": "CK", "CHIRADZULu": "CR", 
       "MACHINGA": "MA", "MANGOCHI": "MG", "MULANJE": "MU", "MWANZA": "MW", 
       "NSANJE": "NS", "PHALOMBE": "PH", "THYOLO": "TH", "ZOMBA": "ZA"
     };
@@ -642,12 +617,10 @@
     let selectedFeature = null;
     let selectedFeatureId = null;
     let activePanel = null;
-    let isZooming = false;
 
     // Performance optimization cache
     const centroidCache = new Map();
     let resizeTimeout = null;
-    let debounceTimer = null;
 
     // Normalize function
     function normalizeName(name){
@@ -671,24 +644,11 @@
 
     // Debounce function for performance
     function debounce(func, wait) {
+      let timeout;
       return function() {
         const context = this, args = arguments;
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => func.apply(context, args), wait);
-      };
-    }
-
-    // Throttle function for performance
-    function throttle(func, limit) {
-      let inThrottle;
-      return function() {
-        const args = arguments;
-        const context = this;
-        if (!inThrottle) {
-          func.apply(context, args);
-          inThrottle = true;
-          setTimeout(() => inThrottle = false, limit);
-        }
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(context, args), wait);
       };
     }
 
@@ -855,15 +815,21 @@
           const row = candidateTable.append("tr");
           
           // Add percentage bar as background
-          row.append("td")
+          const barContainer = row.append("td")
             .attr("colspan", 4)
             .style("position", "absolute")
             .style("top", "2px")
             .style("left", "2px")
             .style("width", "calc(100% - 4px)")
             .style("height", "calc(100% - 4px)")
-            .style("z-index", "0")
-            .html(`<div class="percentage-bar-container"><div class="percentage-bar" style="width: ${candidate.percentage}%; background-color: ${candidate.color || '#888'}"></div></div>`);
+            .style("z-index", "0");
+            
+          barContainer.append("div")
+            .attr("class", "percentage-bar-container")
+            .append("div")
+            .attr("class", "percentage-bar")
+            .style("width", `${candidate.percentage}%`)
+            .style("background-color", candidate.color || '#888');
           
           // Candidate name with party abbreviation
           row.append("td")
@@ -982,7 +948,7 @@
         const isWinner = i === 0;
         
         html += `
-          <tr>
+          <tr style="height: 50px;">
             <td colspan="4" style="position: absolute; left: 2px; width: calc(100% - 4px); height: calc(100% - 4px); z-index: 0;">
               <div class="percentage-bar-container">
                 <div class="percentage-bar" style="width: ${c.percentage}%; background-color: ${c.color || '#888'}"></div>
@@ -1004,62 +970,55 @@
       const dataset = allElectionData[year] || { electionData: {}, partyColors: {} };
       const ed = dataset.electionData || {};
       if(!districtSelection) return;
-      districtSelection.transition().duration(220)
-        .attr("fill", d => {
-          const dName = normalizeName(featureDistrictName(d));
-          const districtData = ed[dName];
-          
-          if (!districtData || !districtData.candidates || districtData.candidates.length === 0) {
-            return "#f5f5f5";
-          }
-          
-          const allZero = districtData.candidates.every(candidate => candidate.votes === 0);
-          if (allZero) {
-            return "#f5f5f5";
-          }
-          
-          return districtData.color || "#bdbdbd";
-        });
+      
+      districtSelection.attr("fill", d => {
+        const dName = normalizeName(featureDistrictName(d));
+        const districtData = ed[dName];
+        
+        if (!districtData || !districtData.candidates || districtData.candidates.length === 0) {
+          return "#f5f5f5";
+        }
+        
+        const allZero = districtData.candidates.every(candidate => candidate.votes === 0);
+        if (allZero) {
+          return "#f5f5f5";
+        }
+        
+        return districtData.color || "#bdbdbd";
+      });
     }
 
-    // ---------- Zooming behavior ----------
+    // ---------- Zooming behavior - SIMPLIFIED ----------
     function initZoom(){
       zoomBehavior = d3.zoom()
         .scaleExtent([1, 12])
-        .on("zoom", throttle((event) => {
+        .on("zoom", (event) => {
           mapGroup.attr("transform", event.transform);
-        }, isSlowDevice ? 100 : 16)); // Throttle zoom events on slow devices
+        });
       svg.call(zoomBehavior);
     }
 
-    // Programmatic focus on feature
+    // Programmatic focus on feature - SIMPLIFIED
     function focusOnFeature(feature){
-      if (isZooming) return;
-      isZooming = true;
-      
       const bounds = path.bounds(feature);
       const dx = bounds[1][0] - bounds[0][0];
       const dy = bounds[1][1] - bounds[0][1];
       const x = (bounds[0][0] + bounds[1][0]) / 2;
       const y = (bounds[0][1] + bounds[1][1]) / 2;
       
-      const scale = Math.max(1, Math.min(30, 0.9 / Math.max(dx / (width * 0.8), dy / (height * 1.4))));
-      const translate = [width * 0.5 - scale * x, height * 0.5 - scale * y];
+      const scale = Math.max(1, Math.min(30, 0.9 / Math.max(dx / (width * 0.4), dy / (height * 1.4))));
+      const translate = [width * 0.5 - scale * x, height * 0.25 - scale * y];
 
-      svg.transition().duration(isSlowDevice ? 1200 : 2400)
-        .call(zoomBehavior.transform, d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale))
-        .on("end", () => { isZooming = false; });
+      // Apply transform immediately without animation
+      svg.call(zoomBehavior.transform, d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale));
     }
 
     function resetView(){
-      if (isZooming) return;
-      isZooming = true;
-      
       selectedFeature = null;
       selectedFeatureId = null;
-      svg.transition().duration(isSlowDevice ? 1000 : 2000)
-        .call(zoomBehavior.transform, d3.zoomIdentity)
-        .on("end", () => { isZooming = false; });
+      
+      // Reset zoom immediately without animation
+      svg.call(zoomBehavior.transform, d3.zoomIdentity);
       
       if(districtSelection) {
         districtSelection.classed("faded", false).classed("focused", false);
@@ -1070,9 +1029,6 @@
       
       // Show header again
       header.classed("hidden", false);
-      
-      // Reset map to full height
-      mapRoot.style.height = "100vh";
     }
 
     // ---------- Panel Management ----------
@@ -1080,14 +1036,9 @@
       // Hide any currently active panel
       hideAllPanels();
       
-      // Set the map to half height
-      mapRoot.style.height = "50vh";
-      
-      // Show the requested panel with a slight delay to ensure CSS applies
-      setTimeout(() => {
-        panel.classed("visible", true).attr("aria-hidden", "false");
-        activePanel = panel;
-      }, 10);
+      // Show the requested panel
+      panel.classed("visible", true).attr("aria-hidden", "false");
+      activePanel = panel;
       
       // Hide header when panel is shown
       header.classed("hidden", true);
@@ -1100,9 +1051,8 @@
       searchPanel.classed("visible", false).attr("aria-hidden", "true");
       activePanel = null;
       
-      // Reset map to full height if no district is selected
+      // Show header if no district is selected
       if (!selectedFeature) {
-        mapRoot.style.height = "100vh";
         header.classed("hidden", false);
       }
     }
@@ -1153,7 +1103,7 @@
               hideAllPanels();
             });
         });
-      }, isSlowDevice ? 300 : 150)); // Longer debounce on slow devices
+      }, 300));
     }
     
     function isLake(f){
@@ -1163,11 +1113,8 @@
       return t.includes("lake") || n.includes("lake");
     }
 
-    // ---------- Click handler (toggle zoom) ----------
+    // ---------- Click handler (toggle zoom) - SIMPLIFIED ----------
     function onDistrictClick(event, d){
-      // Prevent multiple rapid taps
-      if (isZooming) return;
-      
       // if this feature is already selected, zoom out
       const id = d.id || (d.properties && (d.properties.id || d.properties.NAME_1 || d.properties.DISTRICT)) || null;
 
@@ -1189,9 +1136,6 @@
       // fade others, highlight this
       districtSelection.classed("faded", dd => dd !== d);
       d3.select(event.currentTarget).classed("faded", false).classed("focused", true).raise();
-
-      // Set map to half height
-      mapRoot.style.height = "50vh";
 
       // Show info panel in bottom half
       showPanel(infoPanel);
@@ -1276,16 +1220,6 @@
             // Improved touch handling for mobile devices
             event.preventDefault();
             onDistrictClick(event, d);
-          })
-          .on("mouseover", function(event, d){
-            if (isSlowDevice) return; // Skip hover effects on slow devices
-            d3.select(this).raise();
-            d3.select(this).classed("focused", true);
-          })
-          .on("mouseout", function(event, d){
-            if (isSlowDevice) return; // Skip hover effects on slow devices
-            const id = d.id || (d.properties && (d.properties.id || d.properties.NAME_1 || d.properties.DISTRICT)) || null;
-            if(selectedFeatureId !== id) d3.select(this).classed("focused", false);
           });
 
         // 7) initialize zoom
@@ -1314,8 +1248,9 @@
         // Set up search functionality
         setupSearchFunctionality();
         
-        // 12) Set up close button handlers - FIXED to reset view
-        d3.selectAll(".close-button").on("click", function() {
+        // 12) Set up close button handlers
+        d3.selectAll(".close-button").on("click", function(event) {
+          event.stopPropagation();
           resetView();
         });
 
