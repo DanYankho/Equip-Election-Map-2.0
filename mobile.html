@@ -408,6 +408,7 @@
       padding: 8px 12px;
       background: rgba(255, 255, 255, 0.7);
       border-radius: 4px;
+      display: none;
     }
 
     /* ---------- Loading Indicator ---------- */
@@ -549,7 +550,7 @@
       <span>Loading data...</span>
     </div>
 
-    <div id="footer" class="footer" style="display: none;">
+    <div id="footer" class="footer">
       *Unofficial results for 2025*
     </div>
   </div>
@@ -986,6 +987,13 @@
         
         return districtData.color || "#bdbdbd";
       });
+      
+      // Show/hide footer for 2025
+      if (year === "2025") {
+        footer.style("display", "block");
+      } else {
+        footer.style("display", "none");
+      }
     }
 
     // ---------- Zooming behavior - SIMPLIFIED ----------
@@ -1099,11 +1107,27 @@
             .attr("class", "search-result-item")
             .text(name)
             .on("click", function() {
-              onDistrictClick(null, district);
-              hideAllPanels();
+              // When a district is selected from search, simulate a click on it
+              selectDistrictFromSearch(district);
             });
         });
       }, 300));
+    }
+    
+    // Function to handle district selection from search
+    function selectDistrictFromSearch(district) {
+      // Find the corresponding DOM element for this district
+      districtSelection.each(function(d) {
+        const districtName = featureDistrictName(d);
+        const searchDistrictName = featureDistrictName(district);
+        if (normalizeName(districtName) === normalizeName(searchDistrictName)) {
+          // Simulate a click on this district
+          onDistrictClick({ currentTarget: this }, d);
+        }
+      });
+      
+      // Hide the search panel
+      hideAllPanels();
     }
     
     function isLake(f){
@@ -1158,12 +1182,6 @@
       updateMapForYear(currentYear);
       // update stats panels
       updateStatsPanels(currentYear);
-      // Show/hide footer for 2025
-      if (year === "2025") {
-        footer.style("display", "block");
-      } else {
-        footer.style("display", "none");
-      }
       // reset view so colors show across full map
       resetView();
     }
