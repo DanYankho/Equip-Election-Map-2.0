@@ -141,6 +141,24 @@
       stroke: #333333;
     }
 
+    /* District labels */
+    .district-label {
+      font-size: 10px;
+      font-weight: 600;
+      fill: #333;
+      text-anchor: middle;
+      pointer-events: none;
+      user-select: none;
+      paint-order: stroke;
+      stroke: white;
+      stroke-width: 2px;
+      stroke-opacity: 0.7;
+    }
+    
+    .district-label.hidden {
+      display: none;
+    }
+
     /* ---------- Control Buttons ---------- */
     .control-buttons {
       position: absolute;
@@ -184,6 +202,25 @@
     .control-button.active {
       background: var(--accent);
       color: white;
+    }
+
+    /* Help button specific style */
+    .help-button {
+      position: absolute;
+      left: 12px;
+      top: 12px;
+      z-index: 70;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.9);
+      border: none;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      cursor: pointer;
     }
 
     /* ---------- Panels (Bottom Half) ---------- */
@@ -411,6 +448,22 @@
       display: none;
     }
 
+    /* Data freshness indicator */
+    .data-freshness {
+      position: absolute;
+      bottom: 10px;
+      right: 16px;
+      width: auto;
+      text-align: right;
+      font-size: 12px;
+      color: #666;
+      z-index: 60;
+      pointer-events: none;
+      padding: 6px 10px;
+      background: rgba(255, 255, 255, 0.7);
+      border-radius: 4px;
+    }
+
     /* ---------- Loading Indicator ---------- */
     .loading {
       position: absolute;
@@ -463,6 +516,74 @@
       background: rgba(0,0,0,0.1);
     }
 
+    /* Help panel styles */
+    .help-panel {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 85%;
+      max-width: 400px;
+      max-height: 80vh;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      z-index: 1000;
+      padding: 20px;
+      overflow-y: auto;
+      display: none;
+    }
+    
+    .help-panel.visible {
+      display: block;
+    }
+    
+    .help-panel h2 {
+      color: var(--accent);
+      margin-top: 0;
+      margin-bottom: 15px;
+    }
+    
+    .help-item {
+      margin-bottom: 15px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .help-item:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+    
+    .help-item h3 {
+      margin: 0 0 8px 0;
+      font-size: 16px;
+      color: #333;
+    }
+    
+    .help-item p {
+      margin: 0;
+      font-size: 14px;
+      color: #666;
+      line-height: 1.5;
+    }
+    
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.5);
+      z-index: 999;
+      display: none;
+    }
+    
+    .overlay.visible {
+      display: block;
+    }
+
     /* ---------- Media Queries for Very Small Screens ---------- */
     @media (max-width: 350px) {
       .header h1 { font-size: 18px; }
@@ -476,6 +597,10 @@
         height: 36px;
         font-size: 20px;
       }
+      .help-panel {
+        width: 90%;
+        padding: 15px;
+      }
     }
   </style>
 </head>
@@ -484,6 +609,8 @@
     <h1 id="page-title">Malawi Presidential Election Results</h1>
     <div id="yearDropdown" class="year-dropdown" role="menu" aria-hidden="true"></div>
   </div>
+
+  <button id="help-button" class="help-button" aria-label="Show help">?</button>
 
   <div id="map-root" role="application" aria-label="Malawi map">
     <svg id="map-svg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet"></svg>
@@ -553,6 +680,36 @@
     <div id="footer" class="footer">
       *Unofficial results for 2025*
     </div>
+
+    <div id="data-freshness" class="data-freshness">
+      Data updated: <span id="last-updated">Loading...</span>
+    </div>
+  </div>
+
+  <div id="help-overlay" class="overlay"></div>
+  <div id="help-panel" class="help-panel">
+    <h2>How to Use This Map</h2>
+    <div class="help-item">
+      <h3>Selecting a Year</h3>
+      <p>Tap the year at the top to view election results from different years (1994-2025).</p>
+    </div>
+    <div class="help-item">
+      <h3>Exploring Districts</h3>
+      <p>Tap any district to view detailed election results for that area.</p>
+    </div>
+    <div class="help-item">
+      <h3>Viewing Statistics</h3>
+      <p>Use the buttons on the right to view total votes or districts won by each party.</p>
+    </div>
+    <div class="help-item">
+      <h3>Searching</h3>
+      <p>Use the search button to find specific districts quickly.</p>
+    </div>
+    <div class="help-item">
+      <h3>District Labels</h3>
+      <p>Toggle district names on/off using the "Show Labels" option in the year dropdown.</p>
+    </div>
+    <button class="close-button" aria-label="Close help" style="position: absolute; top: 10px; right: 10px;">×</button>
   </div>
 
   <script>
@@ -566,6 +723,7 @@
     // ---------- CONFIG ----------
     const years = ["1994","1999","2004","2009","2014","2019","2020","2025"];
     let currentYear = years[0];
+    let showLabels = false; // Track label visibility state
 
     // District abbreviations mapping
     const districtAbbreviations = {
@@ -600,6 +758,11 @@
     const searchButton = d3.select("#search-button");
     const districtSearch = d3.select("#district-search");
     const searchResults = d3.select("#search-results");
+    const helpButton = d3.select("#help-button");
+    const helpPanel = d3.select("#help-panel");
+    const helpOverlay = d3.select("#help-overlay");
+    const dataFreshness = d3.select("#data-freshness");
+    const lastUpdated = d3.select("#last-updated");
 
     // Projection & path
     const projection = d3.geoMercator()
@@ -613,6 +776,7 @@
     let geoData = null;
     let districtSelection = null;
     let lakeSelection = null;
+    let districtLabels = null;
     let zoomBehavior = null;
     let allElectionData = {};
     let selectedFeature = null;
@@ -874,6 +1038,8 @@
     const yearDropdown = d3.select("#yearDropdown");
     function buildYearList(){
       yearDropdown.selectAll("*").remove();
+      
+      // Add years
       years.forEach(y => {
         yearDropdown.append("button")
           .attr("type","button")
@@ -885,6 +1051,23 @@
             hideYearDropdown();
           });
       });
+      
+      // Add separator
+      yearDropdown.append("hr")
+        .style("margin", "8px 0")
+        .style("border", "none")
+        .style("border-top", "1px solid #eee");
+      
+      // Add labels toggle
+      yearDropdown.append("button")
+        .attr("type","button")
+        .classed("year-item", true)
+        .classed("active", showLabels)
+        .html(showLabels ? "✓ Hide Labels" : "Show Labels")
+        .on("click", function(){
+          toggleLabels();
+          hideYearDropdown();
+        });
     }
     buildYearList();
 
@@ -1002,6 +1185,10 @@
         .scaleExtent([1, 12])
         .on("zoom", (event) => {
           mapGroup.attr("transform", event.transform);
+          // Update labels position when zooming
+          if (districtLabels) {
+            districtLabels.attr("transform", event.transform);
+          }
         });
       svg.call(zoomBehavior);
     }
@@ -1185,6 +1372,101 @@
       // reset view so colors show across full map
       resetView();
     }
+    
+    // ---------- Toggle district labels ----------
+    function toggleLabels() {
+      showLabels = !showLabels;
+      
+      // Update the button text in the dropdown
+      buildYearList();
+      
+      if (showLabels) {
+        addDistrictLabels();
+      } else {
+        removeDistrictLabels();
+      }
+    }
+    
+    function addDistrictLabels() {
+      if (!geoData || !geoData.features) return;
+      
+      // Remove any existing labels first
+      removeDistrictLabels();
+      
+      // Create a group for labels that will transform with the map
+      const labelsGroup = mapGroup.append("g")
+        .attr("class", "district-labels");
+      
+      // Get districts (exclude lakes)
+      const districts = geoData.features.filter(f => !isLake(f));
+      
+      // Add labels for each district
+      districtLabels = labelsGroup.selectAll("text")
+        .data(districts)
+        .enter()
+        .append("text")
+        .attr("class", "district-label")
+        .attr("x", d => {
+          // Use centroid for label position
+          const centroid = path.centroid(d);
+          return centroid[0];
+        })
+        .attr("y", d => {
+          const centroid = path.centroid(d);
+          return centroid[1];
+        })
+        .text(d => {
+          const name = featureDistrictName(d);
+          return districtAbbreviations[name.toUpperCase()] || name;
+        });
+    }
+    
+    function removeDistrictLabels() {
+      d3.selectAll(".district-labels").remove();
+      districtLabels = null;
+    }
+    
+    // ---------- Help functionality ----------
+    function setupHelpFunctionality() {
+      // Show help panel when help button is clicked
+      helpButton.on("click", function() {
+        showHelpPanel();
+      });
+      
+      // Close help panel when close button is clicked
+      d3.select("#help-panel .close-button").on("click", function() {
+        hideHelpPanel();
+      });
+      
+      // Close help panel when overlay is clicked
+      helpOverlay.on("click", function() {
+        hideHelpPanel();
+      });
+    }
+    
+    function showHelpPanel() {
+      helpPanel.classed("visible", true);
+      helpOverlay.classed("visible", true);
+    }
+    
+    function hideHelpPanel() {
+      helpPanel.classed("visible", false);
+      helpOverlay.classed("visible", false);
+    }
+    
+    // ---------- Data freshness indicator ----------
+    function updateDataFreshnessIndicator() {
+      const now = new Date();
+      const formattedDate = now.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+      
+      lastUpdated.text(formattedDate);
+    }
 
     // ---------- Load geojson + CSVs and draw map ----------
     async function initializeMap() {
@@ -1266,6 +1548,9 @@
         // Set up search functionality
         setupSearchFunctionality();
         
+        // Set up help functionality
+        setupHelpFunctionality();
+        
         // 12) Set up close button handlers
         d3.selectAll(".close-button").on("click", function(event) {
           event.stopPropagation();
@@ -1291,6 +1576,9 @@
 
         // 16) helper: updateMapForYear initial
         updateMapForYear(currentYear);
+        
+        // 17) Update data freshness indicator
+        updateDataFreshnessIndicator();
 
         // Hide loading indicator
         loadingIndicator.style("display", "none");
