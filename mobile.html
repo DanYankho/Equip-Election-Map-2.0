@@ -205,6 +205,7 @@
     }
 
     /* Help button specific style */
+    /* Help button specific style */
     .help-button {
       position: absolute;
       left: 12px;
@@ -449,12 +450,13 @@
     }
 
     /* Data freshness indicator */
+    /* Data freshness indicator */
     .data-freshness {
       position: absolute;
-      bottom: 10px;
-      right: 16px;
+      bottom: 8%; /* Position above the footer */
+      left: 16px;
       width: auto;
-      text-align: right;
+      text-align: left;
       font-size: 12px;
       color: #666;
       z-index: 60;
@@ -610,7 +612,7 @@
     <div id="yearDropdown" class="year-dropdown" role="menu" aria-hidden="true"></div>
   </div>
 
-  <button id="help-button" class="help-button" aria-label="Show help">?</button>
+  
 
   <div id="map-root" role="application" aria-label="Malawi map">
     <svg id="map-svg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet"></svg>
@@ -627,6 +629,10 @@
       <div class="control-button-wrapper">
         <button id="search-button" class="control-button" aria-label="Search districts">🔍</button>
         <span class="button-label">Search</span>
+      </div>
+      <div class="control-button-wrapper">
+        <button id="help-button" class="control-button" aria-label="Show help">❓</button>
+        <span class="button-label">Help</span>
       </div>
     </div>
     
@@ -709,7 +715,8 @@
       <h3>District Labels</h3>
       <p>Toggle district names on/off using the "Show Labels" option in the year dropdown.</p>
     </div>
-    <button class="close-button" aria-label="Close help" style="position: absolute; top: 10px; right: 10px;">×</button>
+    <!-- Fix: Ensure this button has the correct class -->
+    
   </div>
 
   <script>
@@ -1171,11 +1178,16 @@
         return districtData.color || "#bdbdbd";
       });
       
-      // Show/hide footer for 2025
+      // In the updateMapForYear function, update both footer and data freshness
       if (year === "2025") {
         footer.style("display", "block");
+        footer.style("bottom", "13%");
+        // Position data freshness above the footer
+        dataFreshness.style("bottom", "8%");
       } else {
         footer.style("display", "none");
+        // Position data freshness at the bottom when footer is hidden
+        dataFreshness.style("bottom", "8%");
       }
     }
 
@@ -1427,6 +1439,9 @@
     }
     
     // ---------- Help functionality ----------
+    // Set up help functionality
+    // ---------- Help functionality ----------
+    // ---------- Help functionality ----------
     function setupHelpFunctionality() {
       // Show help panel when help button is clicked
       helpButton.on("click", function() {
@@ -1434,7 +1449,10 @@
       });
       
       // Close help panel when close button is clicked
-      d3.select("#help-panel .close-button").on("click", function() {
+      // Fix: Use the correct selector for the help panel close button
+      const helpCloseButton = d3.select("#help-panel .close-button");
+      helpCloseButton.on("click", function(event) {
+        event.stopPropagation();
         hideHelpPanel();
       });
       
@@ -1442,17 +1460,27 @@
       helpOverlay.on("click", function() {
         hideHelpPanel();
       });
+      
+      // Close help panel when Escape key is pressed
+      document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+          hideHelpPanel();
+        }
+      });
     }
-    
+
     function showHelpPanel() {
       helpPanel.classed("visible", true);
       helpOverlay.classed("visible", true);
     }
-    
+
     function hideHelpPanel() {
       helpPanel.classed("visible", false);
       helpOverlay.classed("visible", false);
     }
+
+    
+    
     
     // ---------- Data freshness indicator ----------
     function updateDataFreshnessIndicator() {
