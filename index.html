@@ -43,31 +43,63 @@
       cursor: pointer;
       transition: background 0.3s ease;
     }
-    .choice-btn:hover {
-      background: #16324d;
-    }
+    .choice-btn:hover { background: #16324d; }
 
     /* Larger screens: show buttons side-by-side */
     @media (min-width: 768px) {
-      .button-group {
-        flex-direction: row;
-      }
-      .choice-btn {
-        flex: 1;
-      }
+      .button-group { flex-direction: row; }
+      .choice-btn { flex: 1; }
     }
+
+    /* Loader */
+    .loader {
+      margin: 2rem auto;
+      width: 60px;
+      height: 60px;
+      border: 4px solid rgba(0, 0, 0, 0.1);
+      border-radius: 50%;
+      border-top: 4px solid #a8935a;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { 0%{transform:rotate(0deg);} 100%{transform:rotate(360deg);} }
+    .loading-screen { display: none; }
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="container" id="choiceScreen">
     <h1 style="margin-bottom:1rem;">Choose Your Experience</h1>
-
     <img src="data/MIBAWA.png" alt="Preview" class="preview">
-
     <div class="button-group">
-      <button class="choice-btn" onclick="location.href='desktop.html'">Desktop / Tablet View</button>
-      <button class="choice-btn" onclick="location.href='mobile.html'">Mobile Phone View</button>
+      <button class="choice-btn" onclick="startTransition('desktop.html')">Desktop / Tablet View</button>
+      <button class="choice-btn" onclick="startTransition('mobile.html')">Mobile Phone View</button>
     </div>
   </div>
+
+  <div class="container loading-screen" id="loadingScreen">
+    <h1>Loading Optimal Experience</h1>
+    <div class="loader"></div>
+    <p>Redirecting in <span id="count">3</span> seconds...</p>
+  </div>
+
+  <script>
+    function startTransition(targetUrl) {
+      // Hide choice screen, show loading
+      document.getElementById('choiceScreen').style.display = 'none';
+      const loading = document.getElementById('loadingScreen');
+      loading.style.display = 'block';
+
+      // Countdown
+      let seconds = 3;
+      const countSpan = document.getElementById('count');
+      const timer = setInterval(() => {
+        countSpan.textContent = seconds;
+        seconds--;
+        if (seconds < 0) {
+          clearInterval(timer);
+          window.location.href = targetUrl;
+        }
+      }, 1000);
+    }
+  </script>
 </body>
 </html>
