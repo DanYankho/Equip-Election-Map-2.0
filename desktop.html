@@ -1085,16 +1085,7 @@ function updateMapForYear(year){
         
         return districtData.color || "#bdbdbd"; // Normal party color
       });
-}
-
-  // Show/hide footer for 2025
-      if (year === "2025") {
-        footer.style("display", "block");
-      } else {
-        footer.style("display", "none");
-      }
-    }
-  
+} 
   // ---------- Zooming behavior (mapGroup transforms) ----------
   function initZoom(){
     zoomBehavior = d3.zoom()
