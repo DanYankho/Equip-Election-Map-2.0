@@ -29,10 +29,11 @@ jobs:
         run: node Scripts/fetch-sheet.js
 
       - name: Commit and push changes
-        run: |
-          git config --local user.name "github-actions[bot]"
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/2025.json
-          git diff --cached --quiet || git commit -m "Update sheet data"
-          git push
+          run: |
+            git config --local user.name "github-actions[bot]"
+            git config --local user.email "github-actions[bot]@users.noreply.github.com"
+            git add data/2025.json
+            git diff --cached --quiet || git commit -m "Update sheet data"
+            git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
+
 
