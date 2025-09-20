@@ -1,30 +1,45 @@
 const { google } = require("googleapis");
 const fs = require("fs");
+const path = require("path");
 
-async function readSheet() {
-  // Load service account credentials from environment variable
-  const creds = JSON.parse(process.env.GCP_SERVICE_ACCOUNT_KEY);
+// Load service account key from environment variable
+const key = JSON.parse(process.env.GCP_SERVICE_ACCOUNT_KEY);
 
-  const auth = new google.auth.GoogleAuth({
-    credentials: creds,
-    scopes: ["https://www.googleapis.com/auth/spreadsheets.readonly"],
-  });
+// Configure JWT auth client
+const auth = new google.auth.JWT(
+  key.client_email,
+  null,
+  key.private_key,
+  ["https://www.googleapis.com/auth/spreadsheets.readonly"]
+);
 
-  const sheets = google.sheets({ version: "v4", auth });
+const sheets = google.sheets({ version: "v4", auth });
 
-  const spreadsheetId = "1gKaETZIb0rAZ9dzI3caIBKEoorakiDhqUKJzUKHbovA"; // from your sheet URL
-  const range = "MAP DATA!A1:F477"; // adjust as needed
+// Your spreadsheet ID and range
+const SPREADSHEET_ID = "1gKaETZIb0rAZ9dzI3caIBKEoorakiDhqUKJzUKHbovA"; // from your sheet URL
+const RANGE = "MAP DATA!A1:F477"; // adjust as needed
 
-  const res = await sheets.spreadsheets.values.get({
-    spreadsheetId,
-    range,
-  });
+async function fetchSheet() {
+  try {
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: RANGE,
+    });
 
-  // Save as JSON
-  fs.writeFileSync("data/2025.json", JSON.stringify(res.data.values, null, 2));
+    const data = res.data.values || [];
 
+    // Ensure folder exists
+    const folder = "data";
+    if (!fs.existsSync(folder)) fs.mkdirSync(folder);
 
-  console.log("✅ Data saved to data.json");
+    // Write JSON file
+    fs.writeFileSync(path.join(folder, "2025.json"), JSON.stringify(data, null, 2));
+
+    console.log(`✅ Fetched ${data.length} rows and saved to data/2025.json`);
+  } catch (err) {
+    console.error("❌ Error fetching sheet:", err);
+    process.exit(1);
+  }
 }
 
-readSheet().catch(console.error);
+fetchSheet();
