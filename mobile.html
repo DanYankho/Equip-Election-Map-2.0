@@ -846,73 +846,71 @@
 
     // ---------- Loading CSV data for a year ----------
     async function loadElectionData(year) {
-      const now = Date.now();
-      if (dataCache[year] && lastFetchTime[year] && (now - lastFetchTime[year] < 120000)) {
+    // Check cache first (cache for 2 minutes to avoid hitting Google Sheets limits)
+    const now = Date.now();
+    if (dataCache[year] && lastFetchTime[year] && (now - lastFetchTime[year] < 120000)) {
         console.log(`Using cached data for ${year}`);
         return dataCache[year];
-      }
+    }
 
-      let url;
+    // Use local CSV for ALL years including 2025
+    const cacheBuster = new Date().getTime();
+    const url = `data/${year}presRegional.csv?t=${cacheBuster}`;
 
-      if (year === "2025") {
-        url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSuZ4RHNfsq6JMIbJhvxtSYANk5e7DNtqCLAu45msrx0Am2PyX7enT6yLyBCkOB5BXmTta104a6AMA4/pub?gid=1682262614&single=true&output=csv";
-      } else {
-        const cacheBuster = new Date().getTime();
-        url = `data/${year}presRegional.csv?t=${cacheBuster}`;
-      }
-
-      try {
+    try {
         console.log(`Loading data for ${year} from: ${url}`);
         const rows = await d3.csv(url);
         const electionData = {};
         const partyColors = {};
 
         rows.forEach(r => {
-          const districtRaw = r["DISTRICT NAME"] || r["DISTRICT"] || r["District"] || r["DIST_NAME"] || r["NAME_1"] || "";
-          const candRaw = r["NAME OF CANDIDATE"] || r["CANDIDATE"] || r["NAME"] || "";
-          const partyRaw = r["PARTY"] || r["PARTY NAME"] || r["Party"] || "";
-          const partyAbbr = r["PARTY ABBR"] || r["PARTY_ABBR"] || r["ABBR"] || partyRaw;
-          const colorRaw = r["PARTY COLOR"] || r["PARTY_COLOR"] || r["COLOR"] || "";
-          const votesRaw = r["VOTES SCORED"] || r["VOTES"] || r["Votes"] || r["VOTES_SCORED"] || "0";
+            // robust column matching
+            const districtRaw = r["DISTRICT NAME"] || r["DISTRICT"] || r["District"] || r["DIST_NAME"] || r["NAME_1"] || "";
+            const candRaw = r["NAME OF CANDIDATE"] || r["CANDIDATE"] || r["NAME"] || "";
+            const partyRaw = r["PARTY"] || r["PARTY NAME"] || r["Party"] || "";
+            const partyAbbr = r["PARTY ABBR"] || r["PARTY_ABBR"] || r["ABBR"] || partyRaw;
+            const colorRaw = r["PARTY COLOR"] || r["PARTY_COLOR"] || r["COLOR"] || "";
+            const votesRaw = r["VOTES SCORED"] || r["VOTES"] || r["Votes"] || r["VOTES_SCORED"] || "0";
 
-          const district = normalizeName(districtRaw);
-          const candidate = (candRaw || "").trim();
-          const party = (partyRaw || "").trim();
-          const partyAbbreviation = (partyAbbr || "").trim();
-          const color = (colorRaw && colorRaw.trim()) ? colorRaw.trim() : "#999999";
-          let votes = 0;
-          try { votes = parseInt((votesRaw || "0").toString().replace(/,/g, ''), 10) || 0; } catch (e) { votes = 0; }
+            const district = normalizeName(districtRaw);
+            const candidate = (candRaw || "").trim();
+            const party = (partyRaw || "").trim();
+            const partyAbbreviation = (partyAbbr || "").trim();
+            const color = (colorRaw && colorRaw.trim()) ? colorRaw.trim() : "#999999";
+            let votes = 0;
+            try { votes = parseInt((votesRaw || "0").toString().replace(/,/g, ''), 10) || 0; } catch (e) { votes = 0; }
 
-          if (!district) return;
+            if (!district) return;
 
-          partyColors[party] = partyColors[party] || { color: color, abbreviation: partyAbbreviation };
+            partyColors[party] = partyColors[party] || { color: color, abbreviation: partyAbbreviation };
 
-          if (!electionData[district]) electionData[district] = { candidates: {}, color: color };
-          if (!electionData[district].candidates[candidate]) {
-            electionData[district].candidates[candidate] = {
-              name: candidate,
-              party: party,
-              partyAbbr: partyAbbreviation,
-              votes: 0,
-              color: color
-            };
-          }
-          electionData[district].candidates[candidate].votes += votes;
+            if (!electionData[district]) electionData[district] = { candidates: {}, color: color };
+            if (!electionData[district].candidates[candidate]) {
+                electionData[district].candidates[candidate] = {
+                    name: candidate,
+                    party: party,
+                    partyAbbr: partyAbbreviation,
+                    votes: 0,
+                    color: color
+                };
+            }
+            electionData[district].candidates[candidate].votes += votes;
         });
 
         // convert candidates into sorted array and pick winner color
         Object.keys(electionData).forEach(k => {
-          const arr = Object.values(electionData[k].candidates);
-          arr.sort((a, b) => b.votes - a.votes);
+            const arr = Object.values(electionData[k].candidates);
+            arr.sort((a, b) => b.votes - a.votes);
 
-          const totalVotes = arr.reduce((sum, c) => sum + c.votes, 0);
-          arr.forEach(candidate => {
-            candidate.percentage = totalVotes > 0 ?
-              Math.round((candidate.votes / totalVotes) * 100) : 0;
-          });
+            // Calculate vote percentages for each candidate
+            const totalVotes = arr.reduce((sum, c) => sum + c.votes, 0);
+            arr.forEach(candidate => {
+                candidate.percentage = totalVotes > 0 ?
+                    Math.round((candidate.votes / totalVotes) * 100) : 0;
+            });
 
-          electionData[k].candidates = arr;
-          if (arr.length > 0) electionData[k].color = arr[0].color || electionData[k].color;
+            electionData[k].candidates = arr;
+            if (arr.length > 0) electionData[k].color = arr[0].color || electionData[k].color;
         });
 
         // Store in cache
@@ -923,17 +921,20 @@
         console.log(`Successfully loaded data for ${year}`);
         return result;
 
-      } catch (err) {
+    } catch (err) {
         console.warn(`Failed to load CSV for ${year} (${url})`, err);
 
+        // If we have cached data, return it even if fresh fetch failed
         if (dataCache[year]) {
-          console.log(`Returning cached data due to fetch error`);
-          return dataCache[year];
+            console.log(`Returning cached data due to fetch error`);
+            return dataCache[year];
         }
 
-        return { electionData: {}, partyColors: {} };
-      }
+        return { electionData: {}, partyColors: {} }; // return empty so map still loads
     }
+}
+
+
 
     // ---------- Update candidate and party stats ----------
     // ---------- Update candidate and party stats ----------
