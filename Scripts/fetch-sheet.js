@@ -21,7 +21,7 @@ async function readSheet() {
   });
 
   // Save as JSON
-  fs.writeFileSync("data/data.json", JSON.stringify(res.data.values, null, 2));
+  fs.writeFileSync("data/2025.json", JSON.stringify(res.data.values, null, 2));
 
 
   console.log("✅ Data saved to data.json");
