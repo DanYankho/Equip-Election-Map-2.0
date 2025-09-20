@@ -497,7 +497,7 @@
       </div>
     </div>
     
-yy
+
 
 <script>
 /* ========= FULL SCRIPT =========
@@ -648,14 +648,34 @@ yy
 
     let url;
 
-    // Use Google Sheets URL for 2025, local CSVs for other years
+  
     if (year === "2025") {
-      // Direct CSV export link
-      url = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSuZ4RHNfsq6JMIbJhvxtSYANk5e7DNtqCLAu45msrx0Am2PyX7enT6yLyBCkOB5BXmTta104a6AMA4/pub?gid=1682262614&single=true&output=csv";
+      // Load from GitHub Pages instead of Google Sheets
+      url = "https://username.github.io/my-map-repo/data/2025.json"; 
     } else {
+      // Cache-busting for local CSVs
       const cacheBuster = new Date().getTime();
       url = `data/${year}presRegional.csv?t=${cacheBuster}`;
     }
+
+    // Fetch and parse
+    if (url.endsWith(".json")) {
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          console.log("Map data:", data);
+          // use data in your map
+        });
+    } else {
+      fetch(url)
+        .then(res => res.text())
+        .then(csvText => {
+          const data = d3.csvParse(csvText); // assuming you're using D3
+          console.log("Map data:", data);
+          // use data in your map
+        });
+    }
+
 
     try {
       console.log(`Loading data for ${year} from: ${url}`);
@@ -1475,5 +1495,3 @@ yy
 </script>
 </body>
 </html>
-
-
