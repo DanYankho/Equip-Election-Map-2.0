@@ -24,7 +24,7 @@ jobs:
       - name: Fetch sheet data
         env:
           GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
-        run: node scripts/fetch-sheet.js
+        run: node Scripts/fetch-sheet.js
 
       - name: Commit and push changes
         run: |
