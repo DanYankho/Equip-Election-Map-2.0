@@ -178,24 +178,26 @@
       opacity: 0;
     }
 
-    /* Info panel on left side */
+    /* Info panel on left side - UPDATED FOR SCROLLING */
     .info-panel {
       position: absolute;
       left: var(--tv-safe-margin);
       top: 50%;
       transform: translateY(-50%);
       width: 350px;
-      max-height: 80vh;
+      height: 80vh;
       background: #ffffff;
       border: 1px solid rgba(0,0,0,0.08);
       border-radius: 12px;
-      padding: 20px;
+      padding: 0;
       box-shadow: 0 10px 30px rgba(0,0,0,0.08);
       z-index: 90;
-      overflow-y: auto;
+      overflow: hidden;
       opacity: 0;
       visibility: hidden;
       transition: opacity 300ms ease, visibility 300ms ease;
+      display: flex;
+      flex-direction: column;
     }
     .info-panel.visible { 
       opacity: 1; 
@@ -204,23 +206,31 @@
     .info-panel .title { 
       color: var(--accent); 
       font-weight: 700; 
-      margin-bottom: 10px; 
-      font-size: 61px;
+      margin: 0;
+      padding: 20px 20px 12px 20px;
+      font-size: 55px;
       border-bottom: 2px solid var(--accent);
-      padding-bottom: 8px;
-      letter-spacing: 0.5px; /* Improved crispness on HD */
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
     }
     .info-panel .meta { 
       color: #444; 
-      margin-bottom: 16px; 
+      margin: 0;
+      padding: 0 20px 16px 20px;
       font-size: 30px;
       font-weight: 500;
+      flex-shrink: 0;
+    }
+    .info-panel-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 20px 20px 20px;
     }
     .info-panel table { 
       width: 100%; 
       border-collapse: collapse; 
       font-size: 20px;
-      margin-top: 15px;
+      margin-top: 0;
     }
     .info-panel .party-label {
       display: block;
@@ -260,37 +270,34 @@
       background: #0a1a2b;
     }
 
-    /* Stats panels */
+    /* Stats panels - UPDATED FOR SCROLLING */
     .stats-panel {
       position: absolute;
       background: rgba(255, 255, 255, 0.95);
       border-radius: 12px;
-      padding: 20px; /* Increased padding for TV */
+      padding: 0;
       box-shadow: 0 8px 24px rgba(0,0,0,0.1);
       z-index: 60;
-      max-height: 40vh;
-      overflow-y: auto;
       border: 1px solid rgba(0,0,0,0.08);
       transition: opacity 300ms ease, visibility 300ms ease;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
     }
     
     .candidate-stats {
       right: var(--tv-safe-margin);
-      top: 50px; /* Adjusted for TV safe zone */
-      width: 350px; /* Increased width for party labels */
-      height: 80%; /* Increased height to fit 5 parties comfortably */
-      max-height: max-content; /* Prevent it from growing beyond 5 parties */
-      
+      top: 50px;
+      width: 420px;
+      height: 80vh;
     }
     
     .party-stats {
       top: 250px;
       left: var(--tv-safe-margin);
       font-size: 30px;
-      width: 280px;
-      height: 300px; /* Increased height to fit 5 parties comfortably */
-      max-height: 300px; /* Prevent it from growing beyond 5 parties */
-      overflow-y: auto; /* Add scroll if there are more than 5 parties */
+      width: 300px;
+      height: 340px;
     }
     
     .stats-panel.faded {
@@ -301,17 +308,24 @@
     .stats-title {
       color: var(--accent);
       font-weight: 700;
-      margin-bottom: 12px;
+      margin: 0;
+      padding: 20px 20px 12px 20px;
       font-size: 40px;
       border-bottom: 1px solid var(--accent);
-      padding-bottom: 6px;
-      letter-spacing: 0.5px; /* Improved crispness on HD */
+      letter-spacing: 0.5px;
+      flex-shrink: 0;
+    }
+    
+    .stats-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 20px 20px 20px;
     }
     
     .stats-table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 20px; /* Increased font size for TV */
+      font-size: 20px;
     }
     
     .stats-table tr {
@@ -324,7 +338,7 @@
     }
     
     .stats-table td {
-      padding: 12px 8px; /* Increased padding for TV */
+      padding: 12px 8px;
       vertical-align: middle;
       position: relative;
       z-index: 1;
@@ -332,16 +346,16 @@
     
     .stats-table .percentage {
       text-align: right;
-      color: #333; /* Darker for better contrast */
-      font-weight: 700; /* Bolder for emphasis */
-      padding-right: 5px; /* Added spacing */
-      font-size: 22px; /* Larger percentage numbers */
+      color: #333;
+      font-weight: 700;
+      padding-right: 5px;
+      font-size: 22px;
     }
     
     .stats-table .votes {
       text-align: right;
-      color: #202020; /* Better contrast */
-      font-size: 18px; /* Larger for TV */
+      color: #202020;
+      font-size: 18px;
       padding-right: 5px;
     }
     
@@ -374,7 +388,7 @@
       border-radius: 4px;
       overflow: hidden;
       z-index: 0;
-      background: linear-gradient(90deg, rgba(0,0,0,0.03) 0%, rgba(0,0,0,0.01) 100%); /* Subtle gradient */
+      background: linear-gradient(90deg, rgba(0,0,0,0.03) 0%, rgba(0,0,0,0.01) 100%);
     }
     
     .percentage-bar {
@@ -411,28 +425,28 @@
       to { transform: rotate(360deg); }
     }
 
-    /* Keyboard shortcut hint */
+    /* Keyboard shortcut hint - UPDATED FOR ALWAYS VISIBLE */
     .keyboard-hint {
       position: absolute;
-      bottom: 10%;
+      bottom: var(--tv-safe-margin);
       left: var(--tv-safe-margin);
-      background: rgba(255, 255, 255, 0.85);
-      padding: 10px 15px;
+      background: rgba(255, 255, 255, 0.95);
+      padding: 12px 18px;
       border-radius: 8px;
-      font-size: 16px;
+      font-size: 18px;
       z-index: 50;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.9);
-      transition: opacity 0.3s ease;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      pointer-events: auto;
     }
     .keyboard-hint.faded {
       opacity: 0;
-      pointer-events: none;
+      visibility: hidden;
     }
 
     /* Two-digit input indicator */
     .input-indicator {
       position: absolute;
-      bottom: calc(var(--tv-safe-margin) + 60px);
+      bottom: calc(var(--tv-safe-margin) + 80px);
       left: var(--tv-safe-margin);
       background: rgba(255, 255, 255, 0.85);
       padding: 10px 15px;
@@ -467,16 +481,20 @@
     <!-- New stats panels -->
     <div id="candidate-stats" class="stats-panel candidate-stats">
       <div class="stats-title">Total Votes</div>
-      <table class="stats-table" id="candidate-table">
-        <!-- Will be populated dynamically -->
-      </table>
+      <div class="stats-content">
+        <table class="stats-table" id="candidate-table">
+          <!-- Will be populated dynamically -->
+        </table>
+      </div>
     </div>
     
     <div id="party-stats" class="stats-panel party-stats">
       <div class="stats-title">Districts Won</div>
-      <table class="stats-table" id="party-table">
-        <!-- Will be populated dynamically -->
-      </table>
+      <div class="stats-content">
+        <table class="stats-table" id="party-table">
+          <!-- Will be populated dynamically -->
+        </table>
+      </div>
     </div>
     
     <div id="loading" class="loading" style="display: none;">
@@ -490,14 +508,14 @@
 
     <div class="keyboard-hint">
       <div class="keyboard-hint-content">
-        <div class="keyboard-hint-text">*Official results for 2025*</div>
-        <div class="keyboard-hint-bar">
-          <div class="keyboard-hint-progress" style="width: 50%;"></div>
-        </div>
+        <div class="keyboard-hint-text">Official votes for 1994-2025</div>
       </div>
     </div>
     
-yy
+    <div class="input-indicator">
+      Year: <span class="digits"></span>
+    </div>
+  </div>
 
 <script>
 /* ========= FULL SCRIPT =========
@@ -614,7 +632,6 @@ yy
   // Performance optimization cache
   const centroidCache = new Map();
   let resizeTimeout = null;
-  let hintTimeout = null;
 
   // Normalize function
   function normalizeName(name){
@@ -727,7 +744,6 @@ yy
     }
 }
 
-
   // Function to find Likoma feature
   function findLikomaFeature() {
     if (!geoData || !geoData.features) return null;
@@ -755,6 +771,8 @@ yy
     
     // Hide header
     header.classed("hidden", true);
+    // ADD THIS LINE: Hide keyboard hint footer
+    keyboardHint.classed("faded", true);
     
     // Focus/zoom to Likoma
     focusOnFeature(likomaFeature);
@@ -965,11 +983,7 @@ yy
 
   // Update keyboard hint based on current mode
   function updateKeyboardHint() {
-    if (keyboardMode === "25") {
-      keyboardHint.select(".keyboard-hint-text").html("*Official votes for 2025*");
-    } else {
-      keyboardHint.select(".keyboard-hint-text").html("*Official votes for 2025*");
-    }
+    keyboardHint.select(".keyboard-hint-text").html("Official votes for 1994-2025");
   }
 
   // Make header clickable for dropdown
@@ -1014,6 +1028,7 @@ yy
     let html = `<div class="title">${escapeHtml(dnameRaw || "Unknown District")}</div>`;
     if(!districtData || !districtData.candidates || districtData.candidates.length === 0){
       html += `<div class="meta">No election data available for ${escapeHtml(year)}</div>`;
+      html += `<div class="info-panel-content"></div>`;
       return html;
     }
     
@@ -1021,10 +1036,11 @@ yy
     const allZero = districtData.candidates.every(candidate => candidate.votes === 0);
     if (allZero) {
       html += `<div class="meta">No votes recorded for ${escapeHtml(year)}</div>`;
+      html += `<div class="info-panel-content"></div>`;
       return html;
     }
     
-    html += `<div class="meta">District votes (${escapeHtml(year)})</div><table>`;
+    html += `<div class="meta">District votes (${escapeHtml(year)})</div><div class="info-panel-content"><table>`;
     districtData.candidates.forEach((c, i) => {
       const isWinner = i === 0;
       
@@ -1040,7 +1056,7 @@ yy
           <td style="text-align:right; color:#666; width:80px; font-size:16px">${(c.votes||0).toLocaleString()}</td>
         </tr>`;
     });
-    html += `</table>`;
+    html += `</table></div>`;
     return html;
   }
 
@@ -1119,6 +1135,9 @@ yy
     // Show right panels again
     candidateStats.classed("faded", false);
     partyStats.classed("faded", false);
+
+    // ADD THIS LINE: Show keyboard hint footer
+    keyboardHint.classed("faded", false);
   }
   
   // ---------- Click handler (toggle zoom) ----------
@@ -1138,6 +1157,10 @@ yy
 
     // Hide header when district is selected
     header.classed("hidden", true);
+
+    // ADD THIS LINE: Hide keyboard hint footer
+    keyboardHint.classed("faded", true);
+
 
     // focus / zoom to right side
     focusOnFeature(d);
@@ -1239,6 +1262,70 @@ yy
         return;
       }
       
+      // Handle panel scrolling when panel is visible
+      if (infoPanel.classed("visible")) {
+        const panelContent = document.querySelector('.info-panel-content');
+        if (panelContent) {
+          if (e.key === "ArrowDown") {
+            e.preventDefault();
+            panelContent.scrollTop += 50;
+            return;
+          } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            panelContent.scrollTop -= 50;
+            return;
+          } else if (e.key === "PageDown") {
+            e.preventDefault();
+            panelContent.scrollTop += panelContent.clientHeight;
+            return;
+          } else if (e.key === "PageUp") {
+            e.preventDefault();
+            panelContent.scrollTop -= panelContent.clientHeight;
+            return;
+          } else if (e.key === "Home") {
+            e.preventDefault();
+            panelContent.scrollTop = 0;
+            return;
+          } else if (e.key === "End") {
+            e.preventDefault();
+            panelContent.scrollTop = panelContent.scrollHeight;
+            return;
+          }
+        }
+      }
+      
+      // Handle scrolling in candidate stats panel
+      if (candidateStats.classed("faded") === false) {
+        const candidateContent = document.querySelector('#candidate-stats .stats-content');
+        if (candidateContent) {
+          if (e.key === "ArrowDown") {
+            e.preventDefault();
+            candidateContent.scrollTop += 50;
+            return;
+          } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            candidateContent.scrollTop -= 50;
+            return;
+          } else if (e.key === "PageDown") {
+            e.preventDefault();
+            candidateContent.scrollTop += candidateContent.clientHeight;
+            return;
+          } else if (e.key === "PageUp") {
+            e.preventDefault();
+            candidateContent.scrollTop -= candidateContent.clientHeight;
+            return;
+          } else if (e.key === "Home") {
+            e.preventDefault();
+            candidateContent.scrollTop = 0;
+            return;
+          } else if (e.key === "End") {
+            e.preventDefault();
+            candidateContent.scrollTop = candidateContent.scrollHeight;
+            return;
+          }
+        }
+      }
+      
       // Process based on current keyboard mode
       if (keyboardMode === "numbers") {
         // Number keys 1-8 for direct year selection
@@ -1246,26 +1333,12 @@ yy
           const yearIndex = parseInt(e.key) - 1;
           if (yearIndex < years.length) {
             setYear(years[yearIndex]);
-            
-            // Show keyboard hint briefly
-            keyboardHint.classed("faded", false);
-            clearTimeout(hintTimeout);
-            hintTimeout = setTimeout(() => {
-              keyboardHint.classed("faded", true);
-            }, 2000);
           }
         }
       } else if (keyboardMode === "digits") {
         // Two-digit input mode
         if (e.key >= '0' && e.key <= '9') {
           processDigitInput(e.key);
-          
-          // Show keyboard hint briefly
-          keyboardHint.classed("faded", false);
-          clearTimeout(hintTimeout);
-          hintTimeout = setTimeout(() => {
-            keyboardHint.classed("faded", true);
-          }, 2000);
         }
       }
       
@@ -1418,50 +1491,6 @@ yy
     console.error("Initialization error:", err);
     alert("Error loading map or data. Check console for details.");
     loadingIndicator.style("display", "none");
-  }
-
-  // ---------- Helpers ----------
-
-  // build year list UI (re-run safe)
-  function buildYearList(){
-    yearDropdown.selectAll("*").remove();
-    years.forEach(y => {
-      const btn = yearDropdown.append("button")
-        .attr("type","button")
-        .text(y)
-        .classed("active", y === currentYear)
-        .on("click", function(){
-          setYear(y);
-        });
-    });
-    
-    // Add keyboard mode selector at the bottom
-    const modeSection = yearDropdown.append("div")
-      .attr("class", "keyboard-mode");
-      
-    modeSection.append("label")
-      .text("Keyboard Input Mode:");
-      
-    const modeOptions = modeSection.append("div")
-      .attr("class", "keyboard-mode-options");
-      
-    modeOptions.append("button")
-      .attr("type", "button")
-      .classed("active", keyboardMode === "numbers")
-      .text("Number keys 1-8")
-      .on("click", function() {
-        setKeyboardMode("numbers");
-        hideYearDropdown();
-      });
-      
-    modeOptions.append("button")
-      .attr("type", "button")
-      .classed("active", keyboardMode === "digits")
-      .text("Type last 2 digits (e.g., '99' for 1999)")
-      .on("click", function() {
-        setKeyboardMode("digits");
-        hideYearDropdown();
-      });
   }
 
 })(); // IIFE end
