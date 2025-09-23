@@ -502,10 +502,6 @@
       <span>Loading data...</span>
     </div>
     
-    <button id="likoma-button" class="zoom-button" aria-label="Focus on Likoma Island">
-      L
-    </button>
-
     <div class="keyboard-hint">
       <div class="keyboard-hint-content">
         <div class="keyboard-hint-text">Official votes for 1994-2025</div>
@@ -530,6 +526,7 @@
    - Added two-digit year input option
    - Added district labels with abbreviations
    - Labels are hidden when district is selected and zoomed in
+   - Added Shift + district abbreviation keyboard shortcuts
 */
 
 
@@ -541,9 +538,9 @@
 
   // District abbreviations mapping
   const districtAbbreviations = {
-    "CHITIPA": " ",
+    "CHITIPA": "CP",
     "KARONGA": "KA",
-    "LIKOMA": " ",
+    "LIKOMA": "LK",
     "MZIMBA": "MZ",
     "NKHATA BAY": "NB",
     "RUMPHI": "RU",
@@ -569,6 +566,15 @@
     "PHALOMBE": "PE",
     "THYOLO": "TO",
     "ZOMBA": "ZA"
+  };
+
+  // Custom label offsets configuration
+  const labelOffsets = {
+    "CHITIPA": { x: -5, y: -20 },
+    "LIKOMA": { x: 0, y: 15 }
+    // Add other districts as needed:
+    // "NKHATA BAY": { x: 0, y: 10 },
+    // "RUMPHI": { x: -10, y: 0 }
   };
 
   // Helper function to get district abbreviation
@@ -744,59 +750,9 @@
     }
 }
 
-  // Function to find Likoma feature
-  function findLikomaFeature() {
-    if (!geoData || !geoData.features) return null;
-    
-    return geoData.features.find(feature => {
-      const name = featureDistrictName(feature);
-      return normalizeName(name) === "LIKOMA";
-    });
-  }
 
-  // Function to focus on Likoma
-  function focusOnLikoma() {
-    const likomaFeature = findLikomaFeature();
-    if (!likomaFeature) return;
-    
-    // If already focused on Likoma, reset view
-    if (selectedFeatureId === "LIKOMA") {
-      resetView();
-      return;
-    }
-    
-    // Select Likoma
-    selectedFeature = likomaFeature;
-    selectedFeatureId = "LIKOMA";
-    
-    // Hide header
-    header.classed("hidden", true);
-    // ADD THIS LINE: Hide keyboard hint footer
-    keyboardHint.classed("faded", true);
-    
-    // Focus/zoom to Likoma
-    focusOnFeature(likomaFeature);
-    
-    // Fade other districts, highlight Likoma
-    districtSelection.classed("faded", true);
-    districtSelection.filter(d => {
-      const name = normalizeName(featureDistrictName(d));
-      return name === "LIKOMA";
-    }).classed("faded", false).classed("focused", true).raise();
-    
-    // Hide labels
-    labelSelection.classed("hidden", true);
-    
-    // Hide right panels
-    candidateStats.classed("faded", true);
-    partyStats.classed("faded", true);
-    
-    // Build info panel content
-    infoPanel.html(buildInfoPanelHtml(likomaFeature, currentYear))
-              .classed("visible", true)
-              .attr("aria-hidden", "false");
-  }
 
+  
   // ---------- Update candidate and party stats ----------
   function updateStatsPanels(year) {
     const dataset = allElectionData[year] || { electionData: {}, partyColors: {} };
@@ -1253,6 +1209,96 @@
     }
   }
 
+  // ---------- District Keyboard Shortcuts (NEW FUNCTIONALITY) ----------
+  function setupDistrictKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      // Check if Shift is pressed and we're not in a text input
+      if (e.shiftKey && e.key.length === 1 && e.key.match(/[A-Z]/i)) {
+        e.preventDefault();
+        
+        // Get the current key pressed (uppercase)
+        const key = e.key.toUpperCase();
+        
+        // Add to our abbreviation input
+        if (!window.districtAbbreviationInput) {
+          window.districtAbbreviationInput = '';
+        }
+        
+        window.districtAbbreviationInput += key;
+        
+        // Clear any existing timeout
+        if (window.districtAbbreviationTimeout) {
+          clearTimeout(window.districtAbbreviationTimeout);
+        }
+        
+        // Set timeout to process the input after a short delay
+        window.districtAbbreviationTimeout = setTimeout(() => {
+          processDistrictAbbreviation(window.districtAbbreviationInput);
+          window.districtAbbreviationInput = '';
+        }, 300);
+      }
+    });
+  }
+
+  function processDistrictAbbreviation(abbreviation) {
+    if (!geoData || !geoData.features) return;
+    
+    // Find district by abbreviation
+    const districtFeature = geoData.features.find(feature => {
+      const districtName = normalizeName(featureDistrictName(feature));
+      const districtAbbr = getDistrictAbbreviation(districtName);
+      return districtAbbr === abbreviation;
+    });
+    
+    if (districtFeature) {
+      // Simulate click on the district
+      selectDistrict(districtFeature);
+    }
+  }
+
+  function selectDistrict(feature) {
+    // If this feature is already selected, zoom out
+    const id = feature.id || (feature.properties && (feature.properties.id || feature.properties.NAME_1 || feature.properties.DISTRICT)) || null;
+
+    if (selectedFeature && selectedFeatureId === id) {
+      resetView();
+      return;
+    }
+
+    // else focus this feature
+    selectedFeature = feature;
+    selectedFeatureId = id;
+
+    // Hide header when district is selected
+    header.classed("hidden", true);
+    keyboardHint.classed("faded", true);
+
+    // focus / zoom to right side
+    focusOnFeature(feature);
+
+    // fade others, highlight this
+    districtSelection.classed("faded", dd => dd !== feature);
+    districtSelection.filter(d => d === feature).classed("faded", false).classed("focused", true).raise();
+
+    // Hide labels
+    labelSelection.classed("hidden", true);
+
+    // Hide right panels
+    candidateStats.classed("faded", true);
+    partyStats.classed("faded", true);
+
+    // Add subtle pulse animation to selected district
+    districtSelection.filter(d => d === feature).transition()
+      .duration(1000)
+      .attr("filter", "url(#pulseEffect)")
+      .transition()
+      .duration(1000)
+      .attr("filter", null);
+
+    // build info panel content
+    infoPanel.html(buildInfoPanelHtml(feature, currentYear)).classed("visible", true).attr("aria-hidden", "false");
+  }
+
   // ---------- Keyboard controls ----------
   function setupKeyboardControls() {
     document.addEventListener('keydown', (e) => {
@@ -1342,10 +1388,6 @@
         }
       }
       
-      // 'L' key for Likoma focus
-      if (e.key === 'l' || e.key === 'L') {
-        focusOnLikoma();
-      }
     });
   }
 
@@ -1419,7 +1461,7 @@
         if(selectedFeatureId !== id) d3.select(this).classed("focused", false);
       });
 
-    // 7) Add district labels
+    // 7) Add district labels with custom positioning
     labelSelection = mapGroup.append("g").attr("class", "district-labels")
       .selectAll("text")
       .data(districts)
@@ -1427,11 +1469,13 @@
       .append("text")
       .attr("class", "district-label")
       .attr("transform", d => {
-        // Use centroid for label placement
         const centroid = path.centroid(d);
-        return `translate(${centroid[0]}, ${centroid[1]})`;
+        const districtName = normalizeName(featureDistrictName(d));
+        const offset = labelOffsets[districtName] || { x: 0, y: 0 };
+        
+        return `translate(${centroid[0] + offset.x}, ${centroid[1] + offset.y})`;
       })
-      .attr("dy", "0.35em") // Vertical alignment
+      .attr("dy", "0.35em")
       .text(d => {
         const districtName = featureDistrictName(d);
         return getDistrictAbbreviation(districtName);
@@ -1442,6 +1486,7 @@
 
     // 9) set up keyboard controls
     setupKeyboardControls();
+    setupDistrictKeyboardShortcuts(); // Add this line for district shortcuts
     updateKeyboardHint(); // Set initial hint text
 
     // 10) initial UI state
@@ -1466,10 +1511,13 @@
         updateProjection();
         svg.selectAll("path").attr("d", path);
         
-        // Update label positions
+        // Update label positions with custom offsets
         labelSelection.attr("transform", d => {
           const centroid = path.centroid(d);
-          return `translate(${centroid[0]}, ${centroid[1]})`;
+          const districtName = normalizeName(featureDistrictName(d));
+          const offset = labelOffsets[districtName] || { x: 0, y: 0 };
+          
+          return `translate(${centroid[0] + offset.x}, ${centroid[1] + offset.y})`;
         });
       }, 250);
     });
@@ -1479,9 +1527,6 @@
 
     // 15) helper: updateMapForYear initial
     updateMapForYear(currentYear);
-
-    // 16) Add Likoma button event listener
-    document.getElementById('likoma-button').addEventListener('click', focusOnLikoma);
 
     // Hide loading indicator
     loadingIndicator.style("display", "none");
