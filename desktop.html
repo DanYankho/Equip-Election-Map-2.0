@@ -58,6 +58,10 @@
       letter-spacing: 0.5px; /* Improved crispness on HD */
       cursor: pointer; /* Add pointer cursor */
       transition: background-color 0.2s ease;
+      /* Safari fix */
+      -webkit-backface-visibility: hidden;
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
     }
     
     .header h1:hover {
@@ -178,15 +182,15 @@
       opacity: 0;
     }
 
-    /* Info panel on left side - UPDATED FOR SCROLLING */
+    /* Info panel on left side - UPDATED FOR SAFARI FIX */
     .info-panel {
       position: absolute;
       left: var(--tv-safe-margin);
-      top: 50%;
+      top: 10%;
       transform: translateY(-50%);
       width: 350px;
       height: 80vh;
-      background: #ffffff;
+      background: #ffffff; /* Changed from rgba to solid */
       border: 1px solid rgba(0,0,0,0.08);
       border-radius: 12px;
       padding: 0;
@@ -198,6 +202,12 @@
       transition: opacity 300ms ease, visibility 300ms ease;
       display: flex;
       flex-direction: column;
+      /* Safari fix */
+      -webkit-backface-visibility: hidden;
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
+      isolation: isolate;
+      will-change: transform;
     }
     .info-panel.visible { 
       opacity: 1; 
@@ -270,10 +280,10 @@
       background: #0a1a2b;
     }
 
-    /* Stats panels - UPDATED FOR SCROLLING */
+    /* Stats panels - UPDATED FOR SAFARI FIX */
     .stats-panel {
       position: absolute;
-      background: rgba(255, 255, 255, 0.95);
+      background: #ffffff; /* Changed from rgba to solid */
       border-radius: 12px;
       padding: 0;
       box-shadow: 0 8px 24px rgba(0,0,0,0.1);
@@ -283,6 +293,12 @@
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      /* Safari fix */
+      -webkit-backface-visibility: hidden;
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
+      isolation: isolate;
+      will-change: transform;
     }
     
     .candidate-stats {
@@ -425,18 +441,22 @@
       to { transform: rotate(360deg); }
     }
 
-    /* Keyboard shortcut hint - UPDATED FOR ALWAYS VISIBLE */
+    /* Keyboard shortcut hint - UPDATED FOR SAFARI FIX */
     .keyboard-hint {
       position: absolute;
       bottom: var(--tv-safe-margin);
       left: var(--tv-safe-margin);
-      background: rgba(255, 255, 255, 0.95);
+      background: #ffffff; /* Changed from rgba to solid */
       padding: 12px 18px;
       border-radius: 8px;
       font-size: 18px;
       z-index: 50;
       box-shadow: 0 4px 12px rgba(0,0,0,0.15);
       pointer-events: auto;
+      /* Safari fix */
+      -webkit-backface-visibility: hidden;
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
     }
     .keyboard-hint.faded {
       opacity: 0;
@@ -448,18 +468,42 @@
       position: absolute;
       bottom: calc(var(--tv-safe-margin) + 80px);
       left: var(--tv-safe-margin);
-      background: rgba(255, 255, 255, 0.85);
+      background: #ffffff; /* Changed from rgba to solid */
       padding: 10px 15px;
       border-radius: 8px;
       font-size: 16px;
       z-index: 50;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
       display: none;
+      /* Safari fix */
+      -webkit-backface-visibility: hidden;
+      -webkit-transform: translateZ(0);
+      transform: translateZ(0);
     }
     .input-indicator .digits {
       font-weight: bold;
       color: var(--accent);
       margin: 0 5px;
+    }
+
+    /* Safari-specific fixes */
+    @media not all and (min-resolution: 0.001dpcm) {
+      @media {
+        .stats-panel,
+        .info-panel,
+        .keyboard-hint,
+        .header h1,
+        .input-indicator {
+          -webkit-transform: translate3d(0, 0, 0);
+          transform: translate3d(0, 0, 0);
+        }
+        
+        /* Ensure percentage bars don't cause issues */
+        .percentage-bar {
+          -webkit-transform: translateZ(0);
+          transform: translateZ(0);
+        }
+      }
     }
 
     /* Remove mobile-specific styles */
@@ -508,6 +552,11 @@
       </div>
     </div>
     
+    <div class="input-indicator">
+      Year: <span class="digits"></span>
+    </div>
+  </div>
+
 <script>
 /* ========= FULL SCRIPT =========
    - click toggles zoom in/out for district
@@ -744,8 +793,6 @@
         return { electionData: {}, partyColors: {} }; // return empty so map still loads
     }
 }
-
-
 
   
   // ---------- Update candidate and party stats ----------
@@ -1087,7 +1134,7 @@
     candidateStats.classed("faded", false);
     partyStats.classed("faded", false);
 
-    // ADD THIS LINE: Show keyboard hint footer
+    // Show keyboard hint footer
     keyboardHint.classed("faded", false);
   }
   
@@ -1109,9 +1156,8 @@
     // Hide header when district is selected
     header.classed("hidden", true);
 
-    // ADD THIS LINE: Hide keyboard hint footer
+    // Hide keyboard hint footer
     keyboardHint.classed("faded", true);
-
 
     // focus / zoom to right side
     focusOnFeature(d);
@@ -1186,7 +1232,7 @@
         // Flash red to indicate invalid input
         inputIndicator.style("background", "rgba(255, 200, 200, 0.85)");
         setTimeout(() => {
-          inputIndicator.style("background", "rgba(255, 255, 255, 0.85)");
+          inputIndicator.style("background", "#ffffff");
         }, 300);
       }
       
@@ -1204,7 +1250,7 @@
     }
   }
 
-  // ---------- District Keyboard Shortcuts (NEW FUNCTIONALITY) ----------
+  // ---------- District Keyboard Shortcuts ----------
   function setupDistrictKeyboardShortcuts() {
     document.addEventListener('keydown', (e) => {
       // Check if Shift is pressed and we're not in a text input
@@ -1481,8 +1527,8 @@
 
     // 9) set up keyboard controls
     setupKeyboardControls();
-    setupDistrictKeyboardShortcuts(); // Add this line for district shortcuts
-    updateKeyboardHint(); // Set initial hint text
+    setupDistrictKeyboardShortcuts();
+    updateKeyboardHint();
 
     // 10) initial UI state
     d3.select("#page-title").text(`Malawi Presidential Election — ${currentYear}`);
