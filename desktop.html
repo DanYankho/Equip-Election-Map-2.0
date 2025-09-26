@@ -204,26 +204,28 @@
     }
     
     .party-stats {
-      top: 250px;
+      top: 25%;
       left: var(--tv-safe-margin);
       width: 300px;
       height: 300px;
     }
     
     .district-votes {
+      display: none; /* Add this line to hide initially */
+      opacity: 0; /* Keep your existing fade transition */
+      visibility: hidden; /* Keep your existing visibility */
       left: var(--tv-safe-margin);
-      top: 50%;
-      transform: translateY(-50%);
+      top: 10%;
       width: auto;
       max-width: 500px;
-      height: auto;
-      max-height: 600px; /* Consistent with other panels */
+      height: 600px;
+      max-height: 900px; /* Consistent with other panels */
     }
 
     /* Arrow navigation for pagination */
     .arrow-navigation {
       position: absolute;
-      bottom: 15px;
+      bottom: 30px;
       width: 100%;
       display: flex;
       justify-content: center;
@@ -235,8 +237,8 @@
       color: white;
       border: none;
       border-radius: 50%;
-      width: 50px;
-      height: 50px;
+      width: 100px;
+      height: 100px;
       font-size: 24px;
       cursor: pointer;
       display: flex;
@@ -451,6 +453,149 @@
       display: block;
     }
 
+    /* Navigation buttons */
+    .navigation-buttons {
+      position: absolute;
+      left: var(--tv-safe-margin);
+      top: 70%; /* Position below the party stats panel */
+      display: flex;
+      gap: 15px;
+      z-index: 70;
+    }
+
+    .nav-button {
+      background: rgba(13, 33, 54, 0.9);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      padding: 10px 15px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-width: 60px;
+      min-height: 30;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .nav-button:hover {
+      background: rgba(13, 33, 54, 1);
+      transform: translateY(-2px);
+    }
+
+    .nav-button:active {
+      transform: translateY(0);
+    }
+
+    .nav-button .icon {
+      font-size: 50px;
+      margin-bottom: 5px;
+    }
+
+    .nav-button .label {
+      font-size: 14px;
+      opacity: 1;
+    }
+
+    .nav-button:disabled {
+      background: rgba(200, 200, 200, 0.7);
+      color: #666;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .nav-button:disabled:hover {
+      background: rgba(200, 200, 200, 0.7);
+      transform: none;
+    }
+
+    /* Help modal */
+    .help-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .help-modal.visible {
+      display: flex;
+    }
+
+    .help-content {
+      background: white;
+      border-radius: 12px;
+      padding: 30px;
+      max-width: 600px;
+      max-height: 80vh;
+      overflow-y: auto;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    .help-content h2 {
+      color: #0d2136;
+      margin-bottom: 20px;
+      font-size: 28px;
+    }
+
+    .help-section {
+      margin-bottom: 20px;
+    }
+
+    .help-section h3 {
+      color: #0d2136;
+      margin-bottom: 10px;
+      font-size: 18px;
+    }
+
+    .help-section ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .help-section li {
+      margin-bottom: 8px;
+      padding-left: 20px;
+      position: relative;
+    }
+
+    .help-section li:before {
+      content: "•";
+      color: #0d2136;
+      position: absolute;
+      left: 0;
+    }
+
+    .keyboard-shortcut {
+      display: inline-block;
+      background: #f0f0f0;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+      margin: 0 4px;
+    }
+
+    .close-help {
+      background: #0d2136;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+
     /* Remove mobile-specific styles */
     @media (max-width: 900px) {
       /* All mobile-specific styles removed */
@@ -494,6 +639,68 @@
     </div>
   </div>
 
+  <!-- Navigation buttons -->
+  <div class="navigation-buttons">
+    <button class="nav-button" id="prev-year" title="Previous year (Left Arrow)">
+      <span class="icon">←</span>
+      <span class="label">Previous Year</span>
+    </button>
+    <button class="nav-button" id="next-year" title="Next year (Right Arrow)">
+      <span class="icon">→</span>
+      <span class="label">Next Year</span>
+    </button>
+    <button class="nav-button" id="help-button" title="Show help">
+      <span class="icon">?</span>
+      <span class="label">Help</span>
+    </button>
+  </div>
+
+  <!-- Help Modal -->
+  <div class="help-modal" id="help-modal">
+    <div class="help-content">
+      <h2>Malawi Election Map Guide</h2>
+      
+      <div class="help-section">
+        <h3>Year Navigation</h3>
+        <ul>
+          <li><span class="keyboard-shortcut">←</span> Left Arrow: Previous election year</li>
+          <li><span class="keyboard-shortcut">→</span> Right Arrow: Next election year</li>
+          <li>Click the header to see all available years (1994-2025)</li>
+          <li>Use the Previous/Next Year buttons below the map</li>
+        </ul>
+      </div>
+
+      <div class="help-section">
+        <h3>District Navigation</h3>
+        <ul>
+          <li>Click any district on the map to zoom in</li>
+          <li>Click the district again or press <span class="keyboard-shortcut">ESC</span> to zoom out</li>
+          <li><span class="keyboard-shortcut">Shift + District Abbreviation</span> (e.g., Shift+LL for Lilongwe)</li>
+        </ul>
+      </div>
+
+      <div class="help-section">
+        <h3>Panel Navigation</h3>
+        <ul>
+          <li><span class="keyboard-shortcut">↑</span> Up Arrow: Previous page in panels</li>
+          <li><span class="keyboard-shortcut">↓</span> Down Arrow: Next page in panels</li>
+          <li>Click the arrow areas at the bottom of panels to navigate pages</li>
+        </ul>
+      </div>
+
+      <div class="help-section">
+        <h3>Data Display</h3>
+        <ul>
+          <li><strong>Total Votes Panel</strong> (right): Shows nationwide candidate results</li>
+          <li><strong>Districts Won Panel</strong> (left): Shows party performance by districts</li>
+          <li><strong>District Votes Panel</strong> (appears when district selected): Shows detailed district results</li>
+        </ul>
+      </div>
+
+      <button class="close-help" id="close-help">Close Help</button>
+    </div>
+  </div>
+
 <script>
 /* ========= FULL SCRIPT =========
    - Canvas-based panels for Safari compatibility
@@ -510,6 +717,7 @@
    - Labels are hidden when district is selected and zoomed in
    - Added Shift + district abbreviation keyboard shortcuts
    - Updated panels with pagination system using arrows
+   - Added year navigation buttons and help modal
 */
 
 (async function(){
@@ -655,6 +863,7 @@
   let lastFetchTime = {};
 
   // ---------- Canvas Drawing Functions ----------
+  // Update the drawCandidatePanel function
   function drawCandidatePanel(candidateArray) {
     const ctx = candidateCtx;
     const canvas = candidateCanvas;
@@ -677,12 +886,13 @@
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 4;
     
-    // Draw title
+    // Draw title - FIXED: Use consistent left margin
     ctx.fillStyle = '#0d2136';
     ctx.font = '700 40px "Libre Franklin", "Segoe UI", Roboto, Arial, sans-serif';
+    ctx.textAlign = 'left'; // Ensure left alignment
     ctx.fillText('Total Votes', 20, 50);
     
-    // Draw title underline
+    // Draw title underline - FIXED: Use same left margin as title
     ctx.fillStyle = '#0d2136';
     ctx.fillRect(20, 60, canvas.width - 40, 2);
     
@@ -690,7 +900,8 @@
     
     let yPos = 100;
     const rowHeight = 65;
-    const maxVisibleRows = 6; // Maximum rows to show per page
+    const maxVisibleRows = 6;
+    const leftMargin = 25; // Consistent left margin for all content
     
     // Filter candidates with votes > 0
     const validCandidates = candidateArray.filter(c => c.votes > 0);
@@ -701,39 +912,45 @@
     const endIndex = Math.min(startIndex + maxVisibleRows, validCandidates.length);
     const currentPageCandidates = validCandidates.slice(startIndex, endIndex);
     
-    // Draw current page candidates
+    // Draw current page candidates - FIXED: Use consistent margins
     currentPageCandidates.forEach((candidate, index) => {
         // Draw percentage bar background
         ctx.fillStyle = 'rgba(0,0,0,0.03)';
         ctx.fillRect(10, yPos - 30, canvas.width - 20, rowHeight - 5);
         
-        // Draw percentage bar
+        // Draw percentage bar - FIXED: Use consistent left margin
         const barWidth = (canvas.width - 40) * (candidate.percentage / 100);
         ctx.fillStyle = candidate.color || '#888';
         ctx.globalAlpha = 0.5;
-        ctx.fillRect(20, yPos - 25, barWidth, rowHeight - 10);
+        ctx.fillRect(leftMargin - 5, yPos - 25, barWidth, rowHeight - 10);
         ctx.globalAlpha = 1.0;
         
-        // Draw candidate name
+        // Draw candidate name - FIXED: Use consistent left margin
         ctx.fillStyle = '#111';
         ctx.font = '700 20px "Libre Franklin", "Segoe UI", Roboto, Arial, sans-serif';
-        ctx.fillText(candidate.name, 25, yPos);
+        ctx.textAlign = 'left';
+        ctx.fillText(candidate.name, leftMargin, yPos);
         
-        // Draw party abbreviation
+        // Draw party abbreviation - FIXED: Use consistent left margin
         ctx.fillStyle = '#777';
         ctx.font = '500 16px "Libre Franklin", "Segoe UI", Roboto, Arial, sans-serif';
-        ctx.fillText(candidate.partyAbbr || candidate.party, 25, yPos + 18);
+        ctx.fillText(candidate.partyAbbr || candidate.party, leftMargin, yPos + 18);
         
-        // Draw percentage and votes on the same line
+        // Draw percentage and votes - FIXED: Use consistent right alignment
+        const rightMargin = 45; // Consistent right margin
+        
+        // Draw percentage
         ctx.fillStyle = '#333';
         ctx.font = '700 22px "Libre Franklin", "Segoe UI", Roboto, Arial, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(`${candidate.percentage}%`, canvas.width - 150, yPos);
+        ctx.textAlign = 'right';
+        ctx.fillText(`${candidate.percentage}%`, canvas.width - rightMargin - 80, yPos);
         
-        // Draw vote count on the same line, to the left of percentage
+        // Draw vote count
         ctx.fillStyle = '#202020';
         ctx.font = '18px "Libre Franklin", "Segoe UI", Roboto, Arial, sans-serif';
-        ctx.fillText(candidate.votes.toLocaleString(), canvas.width - 55, yPos);
+        ctx.fillText(candidate.votes.toLocaleString(), canvas.width - rightMargin + 20, yPos);
+        
+        // Reset alignment for next iteration
         ctx.textAlign = 'left';
         
         yPos += rowHeight;
@@ -741,25 +958,40 @@
     
     // Draw pagination info and arrows if needed
     if (totalPages > 1) {
-        // Draw page indicator
-        ctx.fillStyle = '#777';
-        ctx.font = '500 14px "Libre Franklin", "Segoe UI", Roboto, Arial, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(`Page ${candidatePanelPage + 1} of ${totalPages}`, canvas.width / 2, canvas.height - 40);
-        ctx.textAlign = 'left';
+        const paginationText = `Page ${candidatePanelPage + 1} of ${totalPages}`;
+        ctx.textAlign = 'left'; // Reset alignment
+        const textWidth = ctx.measureText(paginationText).width;
+        const totalWidth = textWidth + 260;
+        
+        const startX = (canvas.width - totalWidth) / 2;
+        const yPosition = canvas.height - 40;
         
         // Draw down arrow if not on last page
         if (candidatePanelPage < totalPages - 1) {
-            drawArrow(ctx, canvas.width / 2, canvas.height - 70, 'down', true);
+            drawArrow(ctx, startX + 15, yPosition, 'down', true);
+        } else {
+            drawArrow(ctx, startX + 15, yPosition, 'down', false);
         }
+        
+        // Draw page indicator
+        ctx.fillStyle = '#777';
+        ctx.font = '500 30px "Libre Franklin", "Segoe UI", Roboto, Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(paginationText, startX + totalWidth / 2, yPosition + 5);
         
         // Draw up arrow if not on first page
         if (candidatePanelPage > 0) {
-            drawArrow(ctx, canvas.width / 2, canvas.height - 70, 'up', true);
+            drawArrow(ctx, startX + totalWidth - 15, yPosition, 'up', true);
+        } else {
+            drawArrow(ctx, startX + totalWidth - 15, yPosition, 'up', false);
         }
+        
+        // Reset alignment
+        ctx.textAlign = 'left';
     }
   }
-  
+
+
   function drawPartyPanel(partyArray) {
     const ctx = partyCtx;
     const canvas = partyCanvas;
@@ -818,11 +1050,18 @@
   }
 
   // Arrow drawing function
-  function drawArrow(ctx, x, y, direction, interactive = false) {
-    const size = 20;
+  // Update the drawArrow function to support disabled state
+  function drawArrow(ctx, x, y, direction, interactive = true) {
+    const size = 40;
     
     ctx.save();
-    ctx.fillStyle = interactive ? 'rgba(13, 33, 54, 0.8)' : '#777';
+    
+    if (interactive) {
+        ctx.fillStyle = 'rgba(13, 33, 54, 0.8)';
+    } else {
+        ctx.fillStyle = 'rgba(200, 200, 200, 0.5)'; // Disabled color
+    }
+    
     ctx.beginPath();
     
     if (direction === 'down') {
@@ -839,6 +1078,7 @@
     ctx.fill();
     ctx.restore();
   }
+
 
   // ---------- Loading CSV data for a year ----------
   async function loadElectionData(year) {
@@ -995,6 +1235,7 @@
 
   // ---------- UI: populate years dropdown ----------
   const yearDropdown = d3.select("#yearDropdown");
+  
   function buildYearList(){
     yearDropdown.selectAll("*").remove();
     years.forEach(y => {
@@ -1017,37 +1258,20 @@
     const modeOptions = modeSection.append("div")
       .attr("class", "keyboard-mode-options");
       
+    // Only keep digits mode
     modeOptions.append("button")
       .attr("type", "button")
-      .classed("active", keyboardMode === "numbers")
-      .text("Number keys 1-8")
-      .on("click", function() {
-        setKeyboardMode("numbers");
-        hideYearDropdown();
-      });
-      
-    modeOptions.append("button")
-      .attr("type", "button")
-      .classed("active", keyboardMode === "digits")
+      .classed("active", true)
       .text("Type last 2 digits (e.g., '99' for 1999)")
       .on("click", function() {
         setKeyboardMode("digits");
         hideYearDropdown();
       });
   }
-  buildYearList();
 
   function setKeyboardMode(mode) {
     keyboardMode = mode;
     digitInput = "";
-    
-    yearDropdown.selectAll(".keyboard-mode-options button")
-      .classed("active", function() {
-        const buttonText = d3.select(this).text();
-        return (mode === "numbers" && buttonText.includes("1-8")) ||
-               (mode === "digits" && buttonText.includes("last 2 digits"));
-      });
-      
     updateKeyboardHint();
   }
 
@@ -1073,6 +1297,60 @@
       hideYearDropdown();
     }
   });
+
+  // ---------- Navigation Buttons Setup ----------
+  function setupNavigationButtons() {
+    const prevYearBtn = document.getElementById('prev-year');
+    const nextYearBtn = document.getElementById('next-year');
+    const helpBtn = document.getElementById('help-button');
+    const helpModal = document.getElementById('help-modal');
+    const closeHelp = document.getElementById('close-help');
+
+    // Previous year button
+    prevYearBtn.addEventListener('click', () => {
+        const currentIndex = years.indexOf(currentYear);
+        if (currentIndex > 0) {
+            setYear(years[currentIndex - 1]);
+        }
+    });
+
+    // Next year button
+    nextYearBtn.addEventListener('click', () => {
+        const currentIndex = years.indexOf(currentYear);
+        if (currentIndex < years.length - 1) {
+            setYear(years[currentIndex + 1]);
+        }
+    });
+
+    // Help button
+    helpBtn.addEventListener('click', () => {
+        helpModal.classList.add('visible');
+    });
+
+    // Close help modal
+    closeHelp.addEventListener('click', () => {
+        helpModal.classList.remove('visible');
+    });
+
+    // Close modal when clicking outside
+    helpModal.addEventListener('click', (e) => {
+        if (e.target === helpModal) {
+            helpModal.classList.remove('visible');
+        }
+    });
+
+    // Update button states initially
+    updateNavigationButtons();
+  }
+
+  function updateNavigationButtons() {
+    const prevYearBtn = document.getElementById('prev-year');
+    const nextYearBtn = document.getElementById('next-year');
+    const currentIndex = years.indexOf(currentYear);
+
+    prevYearBtn.disabled = currentIndex === 0;
+    nextYearBtn.disabled = currentIndex === years.length - 1;
+  }
 
   // ---------- Projection sizing ----------
   function updateProjection(){
@@ -1100,7 +1378,8 @@
 
    // ---------- Info panel builder ----------
   // ---------- District Votes Panel Drawing Function ----------
-  function drawDistrictPanel(feature, year) {
+  // Update the drawDistrictPanel function
+function drawDistrictPanel(feature, year) {
     const ctx = districtCtx;
     const canvas = districtCanvas;
 
@@ -1177,7 +1456,7 @@
     // === Candidates ===
     let yPos = 140 * scale;
     const baseRowHeight = 65 * scale;
-    const maxVisibleRows = 5; // Maximum rows to show per page
+    const maxVisibleRows = 5;
     
     // Filter candidates with votes > 0
     const validCandidates = districtData.candidates.filter(c => c.votes > 0);
@@ -1237,7 +1516,7 @@
         ctx.fillStyle = "#333";
         ctx.font = `700 ${22 * scale}px "Libre Franklin", "Segoe UI", Roboto, Arial, sans-serif`;
         ctx.textAlign = "center";
-        ctx.fillText(`${candidate.percentage}%`, canvas.clientWidth - 160 * scale, yPos);
+        ctx.fillText(`${candidate.percentage}%`, canvas.clientWidth - 115 * scale, yPos);
         ctx.restore();
 
         // Votes
@@ -1245,7 +1524,7 @@
         ctx.fillStyle = "#202020";
         ctx.font = `400 ${18 * scale}px "Libre Franklin", "Segoe UI", Roboto, Arial, sans-serif`;
         ctx.textAlign = "center";
-        ctx.fillText(candidate.votes.toLocaleString(), canvas.clientWidth - 80 * scale, yPos);
+        ctx.fillText(candidate.votes.toLocaleString(), canvas.clientWidth - 45 * scale, yPos);
         ctx.restore();
 
         yPos += baseRowHeight;
@@ -1253,26 +1532,39 @@
     
     // Draw pagination info and arrows if needed
     if (totalPages > 1) {
-        // Draw page indicator
-        ctx.save();
-        ctx.fillStyle = '#777';
-        ctx.font = `500 ${14 * scale}px "Libre Franklin", "Segoe UI", Roboto, Arial, sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.fillText(`Page ${districtPanelPage + 1} of ${totalPages}`, canvas.clientWidth / 2, canvas.clientHeight - 40 * scale);
-        ctx.textAlign = 'left';
-        ctx.restore();
+        const paginationText = `Page ${districtPanelPage + 1} of ${totalPages}`;
+        const textWidth = ctx.measureText(paginationText).width;
+        const totalWidth = textWidth + 260 * scale; // 30px for each arrow + spacing
+        
+        const startX = (canvas.clientWidth - totalWidth) / 2;
+        const yPosition = canvas.clientHeight - 40 * scale;
         
         // Draw down arrow if not on last page
         if (districtPanelPage < totalPages - 1) {
-            drawArrow(ctx, canvas.clientWidth / 2, canvas.clientHeight - 70 * scale, 'down', true);
+            drawArrow(ctx, startX + 15 * scale, yPosition - 2, 'down', true);
+        } else {
+            // Draw disabled down arrow
+            drawArrow(ctx, startX + 15 * scale, yPosition - 2, 'down', false);
         }
+        
+        // Draw page indicator
+        ctx.save();
+        ctx.fillStyle = '#777';
+        ctx.font = `500 ${25 * scale}px "Libre Franklin", "Segoe UI", Roboto, Arial, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText(paginationText, startX + totalWidth / 2, yPosition + 5 * scale);
+        ctx.restore();
         
         // Draw up arrow if not on first page
         if (districtPanelPage > 0) {
-            drawArrow(ctx, canvas.clientWidth / 2, canvas.clientHeight - 70 * scale, 'up', true);
+            drawArrow(ctx, startX + totalWidth - 15 * scale, yPosition, 'up', true);
+        } else {
+            // Draw disabled up arrow
+            drawArrow(ctx, startX + totalWidth - 15 * scale, yPosition, 'up', false);
         }
     }
   }
+
 
   function escapeHtml(s){ return (s||'').toString().replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[ch])); }
 
@@ -1399,6 +1691,7 @@
     updateStatsPanels(currentYear);
     hideYearDropdown();
     resetView();
+    updateNavigationButtons();
   }
 
   // Process two-digit input
@@ -1409,121 +1702,166 @@
     
     digitInput += digit;
     inputDigits.text(digitInput);
-    
     inputIndicator.style("display", "block");
     
+    // Show what year is being entered
+    const potentialYear = "20" + digitInput; // Assuming 2000s for now
+    inputIndicator.select(".digits").text(`${digitInput} (${potentialYear})`);
+    
     if (digitInput.length === 2) {
-      const matchedYear = years.find(y => y.endsWith(digitInput));
-      
-      if (matchedYear) {
-        setYear(matchedYear);
-        digitInput = "";
-        inputIndicator.style("display", "none");
-      } else {
-        inputIndicator.style("background", "rgba(255, 200, 200, 0.85)");
-        setTimeout(() => {
-          inputIndicator.style("background", "#ffffff");
-        }, 300);
-      }
-      
-      digitTimeout = setTimeout(() => {
-        digitInput = "";
-        inputIndicator.style("display", "none");
-      }, 1000);
+        // Try to find matching year
+        let matchedYear = years.find(y => y.endsWith(digitInput));
+        
+        // If no match in 2000s, try 1900s for 94, 99
+        if (!matchedYear && digitInput === "94") matchedYear = "1994";
+        if (!matchedYear && digitInput === "99") matchedYear = "1999";
+        
+        if (matchedYear) {
+            setYear(matchedYear);
+            inputIndicator.style("background", "#ffffff");
+        } else {
+            // Show error
+            inputIndicator.style("background", "rgba(255, 200, 200, 0.85)");
+            inputIndicator.select(".digits").text(`${digitInput} (Invalid)`);
+        }
+        
+        digitTimeout = setTimeout(() => {
+            digitInput = "";
+            inputIndicator.style("display", "none");
+            inputIndicator.style("background", "#ffffff");
+        }, 1000);
     } else {
-      digitTimeout = setTimeout(() => {
-        digitInput = "";
-        inputIndicator.style("display", "none");
-      }, 2000);
+        digitTimeout = setTimeout(() => {
+            digitInput = "";
+            inputIndicator.style("display", "none");
+            inputIndicator.style("background", "#ffffff");
+        }, 2000);
     }
   }
 
   // ---------- Canvas click handler for pagination ----------
   function setupCanvasClickHandlers() {
+    const arrowHitboxWidth = 120;   // widen horizontal clickable area
+    const arrowHitboxHeight = 120;  // make vertical clickable area taller
+
+    // === Candidate panel ===
     candidateCanvas.addEventListener('click', function(event) {
-      const rect = candidateCanvas.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
-      
-      // Check if click is near the arrow area (bottom center)
-      if (y > candidateCanvas.height - 100) {
-        const dataset = allElectionData[currentYear] || { electionData: {}, partyColors: {} };
-        const ed = dataset.electionData || {};
-        
-        const candidateTotals = {};
-        Object.keys(ed).forEach(district => {
-          const districtData = ed[district];
-          if (districtData && districtData.candidates) {
-            districtData.candidates.forEach(candidate => {
-              if (!candidateTotals[candidate.name]) {
-                candidateTotals[candidate.name] = {
-                  votes: 0,
-                  party: candidate.party,
-                  partyAbbr: candidate.partyAbbr,
-                  color: candidate.color
-                };
-              }
-              candidateTotals[candidate.name].votes += candidate.votes;
+        const rect = candidateCanvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+
+        if (y > rect.height - arrowHitboxHeight) { // use displayed height
+            const dataset = allElectionData[currentYear] || { electionData: {}, partyColors: {} };
+            const ed = dataset.electionData || {};
+
+            const candidateTotals = {};
+            Object.keys(ed).forEach(district => {
+                const districtData = ed[district];
+                if (districtData && districtData.candidates) {
+                    districtData.candidates.forEach(candidate => {
+                        if (!candidateTotals[candidate.name]) {
+                            candidateTotals[candidate.name] = {
+                                votes: 0,
+                                party: candidate.party,
+                                partyAbbr: candidate.partyAbbr,
+                                color: candidate.color
+                            };
+                        }
+                        candidateTotals[candidate.name].votes += candidate.votes;
+                    });
+                }
             });
-          }
-        });
-        
-        const candidateArray = Object.keys(candidateTotals).map(name => ({
-          name,
-          votes: candidateTotals[name].votes,
-          party: candidateTotals[name].party,
-          partyAbbr: candidateTotals[name].partyAbbr,
-          color: candidateTotals[name].color
-        })).sort((a, b) => b.votes - a.votes);
-        
-        const validCandidates = candidateArray.filter(c => c.votes > 0);
-        const maxVisibleRows = 6;
-        const totalPages = Math.ceil(validCandidates.length / maxVisibleRows);
-        
-        // Check if click is on up arrow (first half of bottom area)
-        if (x > candidateCanvas.width / 2 - 50 && x < candidateCanvas.width / 2 && candidatePanelPage > 0) {
-          candidatePanelPage--;
-          updateStatsPanels(currentYear);
+
+            const candidateArray = Object.keys(candidateTotals).map(name => ({
+                name,
+                votes: candidateTotals[name].votes,
+                party: candidateTotals[name].party,
+                partyAbbr: candidateTotals[name].partyAbbr,
+                color: candidateTotals[name].color
+            })).sort((a, b) => b.votes - a.votes);
+
+            const validCandidates = candidateArray.filter(c => c.votes > 0);
+            const maxVisibleRows = 6;
+            const totalPages = Math.ceil(validCandidates.length / maxVisibleRows);
+
+            const paginationText = `Page ${candidatePanelPage + 1} of ${totalPages}`;
+            const textWidth = candidateCtx.measureText(paginationText).width;
+            const totalWidth = textWidth + 260;
+            const startX = (rect.width - totalWidth) / 2; // use displayed width
+
+            // Down arrow (left side)
+            if (
+                x >= startX - 20 &&
+                x <= startX + arrowHitboxWidth &&
+                candidatePanelPage < totalPages - 1
+            ) {
+                candidatePanelPage++;
+                updateStatsPanels(currentYear);
+            }
+            // Up arrow (right side)
+            else if (
+                x >= startX + totalWidth - arrowHitboxWidth &&
+                x <= startX + totalWidth + 20 &&
+                candidatePanelPage > 0
+            ) {
+                candidatePanelPage--;
+                updateStatsPanels(currentYear);
+            }
         }
-        // Check if click is on down arrow (second half of bottom area)
-        else if (x > candidateCanvas.width / 2 && x < candidateCanvas.width / 2 + 50 && candidatePanelPage < totalPages - 1) {
-          candidatePanelPage++;
-          updateStatsPanels(currentYear);
-        }
-      }
     });
-    
+
+    // === District panel ===
     districtCanvas.addEventListener('click', function(event) {
-      const rect = districtCanvas.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
-      
-      // Check if click is near the arrow area (bottom center)
-      if (y > districtCanvas.height - 100) {
-        const dnameRaw = featureDistrictName(selectedFeature);
-        const dname = normalizeName(dnameRaw);
-        const dataset = allElectionData[currentYear] || { electionData: {} };
-        const districtData = dataset.electionData[dname];
-        
-        if (!districtData || !districtData.candidates) return;
-        
-        const validCandidates = districtData.candidates.filter(c => c.votes > 0);
-        const maxVisibleRows = 5;
-        const totalPages = Math.ceil(validCandidates.length / maxVisibleRows);
-        
-        // Check if click is on up arrow (first half of bottom area)
-        if (x > districtCanvas.width / 2 - 50 && x < districtCanvas.width / 2 && districtPanelPage > 0) {
-          districtPanelPage--;
-          drawDistrictPanel(selectedFeature, currentYear);
+        const rect = districtCanvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+
+        if (y > rect.height - arrowHitboxHeight) { // use displayed height
+            const paginationText = `Page ${districtPanelPage + 1}`;
+            const textWidth = districtCtx.measureText(paginationText).width;
+            const totalWidth = textWidth + 260;
+            const startX = (rect.width - totalWidth) / 2; // use displayed width
+
+            // Down arrow (left side)
+            if (x >= startX - 20 && x <= startX + arrowHitboxWidth) {
+                const dnameRaw = featureDistrictName(selectedFeature);
+                const dname = normalizeName(dnameRaw);
+                const dataset = allElectionData[currentYear] || { electionData: {} };
+                const districtData = dataset.electionData[dname];
+                if (!districtData || !districtData.candidates) return;
+
+                const validCandidates = districtData.candidates.filter(c => c.votes > 0);
+                const maxVisibleRows = 5;
+                const totalPages = Math.ceil(validCandidates.length / maxVisibleRows);
+
+                if (districtPanelPage < totalPages - 1) {
+                    districtPanelPage++;
+                    drawDistrictPanel(selectedFeature, currentYear);
+                }
+            }
+
+            // Up arrow (right side)
+            else if (x >= startX + totalWidth - arrowHitboxWidth &&
+                     x <= startX + totalWidth + 20) {
+                const dnameRaw = featureDistrictName(selectedFeature);
+                const dname = normalizeName(dnameRaw);
+                const dataset = allElectionData[currentYear] || { electionData: {} };
+                const districtData = dataset.electionData[dname];
+                if (!districtData || !districtData.candidates) return;
+
+                const validCandidates = districtData.candidates.filter(c => c.votes > 0);
+                const maxVisibleRows = 5;
+                const totalPages = Math.ceil(validCandidates.length / maxVisibleRows);
+
+                if (districtPanelPage > 0) {
+                    districtPanelPage--;
+                    drawDistrictPanel(selectedFeature, currentYear);
+                }
+            }
         }
-        // Check if click is on down arrow (second half of bottom area)
-        else if (x > districtCanvas.width / 2 && x < districtCanvas.width / 2 + 50 && districtPanelPage < totalPages - 1) {
-          districtPanelPage++;
-          drawDistrictPanel(selectedFeature, currentYear);
-        }
-      }
     });
   }
+
 
   // ---------- District Keyboard Shortcuts ----------
   function setupDistrictKeyboardShortcuts() {
@@ -1603,121 +1941,105 @@
   // ---------- Keyboard controls ----------
   function setupKeyboardControls() {
     document.addEventListener('keydown', (e) => {
-      if (e.key === "Escape") {
-        resetView();
-        return;
-      }
-      
-      // Pagination with arrow keys
-      if (e.key === "ArrowDown" && (candidateCanvas.classList.contains("faded") === false || districtCanvas.classList.contains("faded") === false)) {
-        e.preventDefault();
-        
-        if (candidateCanvas.classList.contains("faded") === false) {
-          // Total Votes panel is visible
-          const dataset = allElectionData[currentYear] || { electionData: {}, partyColors: {} };
-          const ed = dataset.electionData || {};
-          
-          const candidateTotals = {};
-          Object.keys(ed).forEach(district => {
-            const districtData = ed[district];
-            if (districtData && districtData.candidates) {
-              districtData.candidates.forEach(candidate => {
-                if (!candidateTotals[candidate.name]) {
-                  candidateTotals[candidate.name] = { votes: 0 };
-                }
-                candidateTotals[candidate.name].votes += candidate.votes;
-              });
+        // Escape key - reset view
+        if (e.key === "Escape") {
+            resetView();
+            return;
+        }
+
+        // Left/Right arrow keys for year navigation
+        if (e.key === "ArrowLeft") {
+            e.preventDefault();
+            const currentIndex = years.indexOf(currentYear);
+            if (currentIndex > 0) {
+                setYear(years[currentIndex - 1]);
             }
-          });
-          
-          const candidateArray = Object.keys(candidateTotals).map(name => ({
-            name,
-            votes: candidateTotals[name].votes
-          })).sort((a, b) => b.votes - a.votes);
-          
-          const validCandidates = candidateArray.filter(c => c.votes > 0);
-          const maxVisibleRows = 6;
-          const totalPages = Math.ceil(validCandidates.length / maxVisibleRows);
-          
-          if (candidatePanelPage < totalPages - 1) {
-            candidatePanelPage++;
-            updateStatsPanels(currentYear);
-          }
-        } else if (districtCanvas.classList.contains("faded") === false) {
-          // District Votes panel is visible
-          const dnameRaw = featureDistrictName(selectedFeature);
-          const dname = normalizeName(dnameRaw);
-          const dataset = allElectionData[currentYear] || { electionData: {} };
-          const districtData = dataset.electionData[dname];
-          
-          if (!districtData || !districtData.candidates) return;
-          
-          const validCandidates = districtData.candidates.filter(c => c.votes > 0);
-          const maxVisibleRows = 5;
-          const totalPages = Math.ceil(validCandidates.length / maxVisibleRows);
-          
-          if (districtPanelPage < totalPages - 1) {
-            districtPanelPage++;
-            drawDistrictPanel(selectedFeature, currentYear);
-          }
+            return;
         }
-      }
-      
-      if (e.key === "ArrowUp" && (candidateCanvas.classList.contains("faded") === false || districtCanvas.classList.contains("faded") === false)) {
-        e.preventDefault();
+
+        if (e.key === "ArrowRight") {
+            e.preventDefault();
+            const currentIndex = years.indexOf(currentYear);
+            if (currentIndex < years.length - 1) {
+                setYear(years[currentIndex + 1]);
+            }
+            return;
+        }
+
+        // Digits mode for year input
+        if (keyboardMode === "digits") {
+            if (e.key >= '0' && e.key <= '9') {
+                e.preventDefault();
+                processDigitInput(e.key);
+            }
+        }
+
+        // Panel pagination
+        if (e.key === "ArrowDown" && (candidateCanvas.classList.contains("faded") === false || districtCanvas.classList.contains("faded") === false)) {
+            e.preventDefault();
+            
+            if (candidateCanvas.classList.contains("faded") === false) {
+                // Total Votes panel pagination
+                const dataset = allElectionData[currentYear] || { electionData: {}, partyColors: {} };
+                const ed = dataset.electionData || {};
+                
+                const candidateTotals = {};
+                Object.keys(ed).forEach(district => {
+                    const districtData = ed[district];
+                    if (districtData && districtData.candidates) {
+                        districtData.candidates.forEach(candidate => {
+                            if (!candidateTotals[candidate.name]) {
+                                candidateTotals[candidate.name] = { votes: 0 };
+                            }
+                            candidateTotals[candidate.name].votes += candidate.votes;
+                        });
+                    }
+                });
+                
+                const candidateArray = Object.keys(candidateTotals).map(name => ({
+                    name,
+                    votes: candidateTotals[name].votes
+                })).sort((a, b) => b.votes - a.votes);
+                
+                const validCandidates = candidateArray.filter(c => c.votes > 0);
+                const maxVisibleRows = 6;
+                const totalPages = Math.ceil(validCandidates.length / maxVisibleRows);
+                
+                if (candidatePanelPage < totalPages - 1) {
+                    candidatePanelPage++;
+                    updateStatsPanels(currentYear);
+                }
+            } else if (districtCanvas.classList.contains("faded") === false) {
+                // District Votes panel pagination
+                const dnameRaw = featureDistrictName(selectedFeature);
+                const dname = normalizeName(dnameRaw);
+                const dataset = allElectionData[currentYear] || { electionData: {} };
+                const districtData = dataset.electionData[dname];
+                
+                if (!districtData || !districtData.candidates) return;
+                
+                const validCandidates = districtData.candidates.filter(c => c.votes > 0);
+                const maxVisibleRows = 5;
+                const totalPages = Math.ceil(validCandidates.length / maxVisibleRows);
+                
+                if (districtPanelPage < totalPages - 1) {
+                    districtPanelPage++;
+                    drawDistrictPanel(selectedFeature, currentYear);
+                }
+            }
+        }
         
-        if (candidateCanvas.classList.contains("faded") === false && candidatePanelPage > 0) {
-          candidatePanelPage--;
-          updateStatsPanels(currentYear);
-        } else if (districtCanvas.classList.contains("faded") === false && districtPanelPage > 0) {
-          districtPanelPage--;
-          drawDistrictPanel(selectedFeature, currentYear);
+        if (e.key === "ArrowUp" && (candidateCanvas.classList.contains("faded") === false || districtCanvas.classList.contains("faded") === false)) {
+            e.preventDefault();
+            
+            if (candidateCanvas.classList.contains("faded") === false && candidatePanelPage > 0) {
+                candidatePanelPage--;
+                updateStatsPanels(currentYear);
+            } else if (districtCanvas.classList.contains("faded") === false && districtPanelPage > 0) {
+                districtPanelPage--;
+                drawDistrictPanel(selectedFeature, currentYear);
+            }
         }
-      }
-      
-      if (infoPanel.classed("visible")) {
-        const panelContent = document.querySelector('.info-panel-content');
-        if (panelContent) {
-          if (e.key === "ArrowDown") {
-            e.preventDefault();
-            panelContent.scrollTop += 50;
-            return;
-          } else if (e.key === "ArrowUp") {
-            e.preventDefault();
-            panelContent.scrollTop -= 50;
-            return;
-          } else if (e.key === "PageDown") {
-            e.preventDefault();
-            panelContent.scrollTop += panelContent.clientHeight;
-            return;
-          } else if (e.key === "PageUp") {
-            e.preventDefault();
-            panelContent.scrollTop -= panelContent.clientHeight;
-            return;
-          } else if (e.key === "Home") {
-            e.preventDefault();
-            panelContent.scrollTop = 0;
-            return;
-          } else if (e.key === "End") {
-            e.preventDefault();
-            panelContent.scrollTop = panelContent.scrollHeight;
-            return;
-          }
-        }
-      }
-      
-      if (keyboardMode === "numbers") {
-        if (e.key >= '1' && e.key <= '8') {
-          const yearIndex = parseInt(e.key) - 1;
-          if (yearIndex < years.length) {
-            setYear(years[yearIndex]);
-          }
-        }
-      } else if (keyboardMode === "digits") {
-        if (e.key >= '0' && e.key <= '9') {
-          processDigitInput(e.key);
-        }
-      }
     });
   }
 
@@ -1806,6 +2128,7 @@
     setupKeyboardControls();
     setupDistrictKeyboardShortcuts();
     setupCanvasClickHandlers();
+    setupNavigationButtons();
     updateKeyboardHint();
 
     d3.select("#page-title").text(`Malawi Presidential Election — ${currentYear}`);
