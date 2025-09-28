@@ -147,6 +147,7 @@
       cursor: pointer;
       border-radius: 4px;
       font-size: 16px;
+      transition: all 0.2s ease;
     }
     
     .year-dropdown button:hover { background: rgba(0,0,0,0.04); }
@@ -174,6 +175,29 @@
       stroke-width: 2px;
       cursor: pointer;
       paint-order: stroke;
+      outline: none !important;
+      -webkit-tap-highlight-color: transparent !important;
+      pointer-events: none; /* Let the click layer handle interactions */
+    }
+    
+    /* Invisible click targets with thick transparent strokes */
+    .district-click-target {
+      fill: transparent !important;
+      stroke: transparent !important;
+      pointer-events: all !important;
+      cursor: pointer !important;
+      outline: none !important;
+      -webkit-tap-highlight-color: transparent !important;
+    }
+
+    .district-click-likoma {
+      stroke-width: 20px !important;
+    }
+
+    /* Ensure no focus styles */
+    .district-click-target:focus, .district-click-target:active {
+      outline: none !important;
+      box-shadow: none !important;
     }
     
     .lake {
@@ -189,7 +213,7 @@
       stroke: #333333;
     }
 
-    /* District labels */
+    /* District labels - positioned in screen space */
     .district-label {
       font-size: 10px;
       font-weight: 600;
@@ -245,16 +269,28 @@
       justify-content: center;
       font-size: 20px;
       cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .control-button:hover {
+      transform: scale(1.1);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    
+    .control-button:active {
+      transform: scale(0.95);
     }
     
     .control-button.active {
       background: var(--accent);
       color: white;
+      transform: scale(1.05);
     }
 
     .control-button:disabled {
       opacity: 0.5;
       cursor: not-allowed;
+      transform: none;
     }
 
     /* Help button specific style */
@@ -274,6 +310,16 @@
       justify-content: center;
       font-size: 20px;
       cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .help-button:hover {
+      transform: scale(1.1);
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    
+    .help-button:active {
+      transform: scale(0.95);
     }
 
     /* ---------- Panels (Bottom Half) ---------- */
@@ -487,6 +533,13 @@
       border-radius: 6px;
       font-size: 16px;
       margin-bottom: 10px;
+      transition: all 0.2s ease;
+    }
+    
+    #district-search:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(13, 33, 54, 0.1);
     }
     
     .search-results {
@@ -500,10 +553,12 @@
       border-bottom: 1px solid #eee;
       cursor: pointer;
       font-size: 16px;
+      transition: all 0.2s ease;
     }
     
     .search-result-item:hover {
       background-color: #f5f5f5;
+      transform: translateX(5px);
     }
 
     /* ---------- Footer for 2025 ---------- */
@@ -570,10 +625,16 @@
       cursor: pointer;
       z-index: 100;
       touch-action: manipulation;
+      transition: all 0.2s ease;
     }
     
     .close-button:hover {
       background: rgba(0,0,0,0.1);
+      transform: scale(1.1);
+    }
+    
+    .close-button:active {
+      transform: scale(0.95);
     }
 
     /* Help panel styles */
@@ -759,6 +820,8 @@
       <div class="loading-spinner"></div>
       <span>Loading data...</span>
     </div>
+
+    
   </div>
 
   <div id="help-overlay" class="overlay"></div>
@@ -770,22 +833,25 @@
     </div>
     <div class="help-item">
       <h3>Exploring Districts</h3>
-      <p>Tap any district to view detailed election results for that area.</p>
+      <p>Tap any district to view detailed election results for that area. The map will zoom in and show the district's voting data.</p>
     </div>
     <div class="help-item">
       <h3>Viewing Statistics</h3>
-      <p>Use the buttons on the right to view total votes or districts won by each party.</p>
+      <p>Use the buttons on the right to view national totals or districts won by each party.</p>
     </div>
     <div class="help-item">
-      <h3>Searching</h3>
-      <p>Use the search button to find specific districts quickly.</p>
+      <h3>Searching Districts</h3>
+      <p>Use the search button to find specific districts quickly. Selecting a district from search will show its detailed results.</p>
+    </div>
+    <div class="help-item">
+      <h3>Navigating Years</h3>
+      <p>Use the Previous/Next Year buttons to cycle through election years or tap the header to select a specific year.</p>
     </div>
     <div class="help-item">
       <h3>District Labels</h3>
-      <p>Toggle district names on/off using the "Show Labels" option in the year dropdown.</p>
+      <p>Toggle district names on/off using the "Show Labels" option in the year dropdown. Labels are visible by default.</p>
     </div>
-    <!-- Fix: Ensure this button has the correct class -->
-    
+    <button class="close-button" aria-label="Close help" style="position: relative; top: 0; right: 0; margin-top: 15px;">×</button>
   </div>
 
   <script>
@@ -799,7 +865,7 @@
     // ---------- CONFIG ----------
     const years = ["1994","1999","2004","2009","2014","2019","2020","2025"];
     let currentYear = years[0];
-    let showLabels = false; // Track label visibility state
+    let showLabels = true; // Labels visible by default
 
     // District abbreviations mapping
   const districtAbbreviations = {
@@ -878,11 +944,13 @@
     let districtSelection = null;
     let lakeSelection = null;
     let districtLabels = null;
+    let clickLayer = null;
     let zoomBehavior = null;
     let allElectionData = {};
     let selectedFeature = null;
     let selectedFeatureId = null;
     let activePanel = null;
+    let currentTransform = d3.zoomIdentity;
 
     // Performance optimization cache
     const centroidCache = new Map();
@@ -1289,13 +1357,34 @@
       zoomBehavior = d3.zoom()
         .scaleExtent([1, 12])
         .on("zoom", (event) => {
+          currentTransform = event.transform;
           mapGroup.attr("transform", event.transform);
-          // Update labels position when zooming
-          if (districtLabels) {
-            districtLabels.attr("transform", event.transform);
-          }
+          // Update labels in screen space
+          updateLabelsPosition();
         });
       svg.call(zoomBehavior);
+    }
+
+    // Update labels position in screen space
+    function updateLabelsPosition() {
+      if (!districtLabels || !showLabels) return;
+      
+      districtLabels.attr("x", d => {
+        const centroid = path.centroid(d);
+        const transformed = currentTransform.apply(centroid);
+        return transformed[0];
+      }).attr("y", d => {
+        const centroid = path.centroid(d);
+        const transformed = currentTransform.apply(centroid);
+        let y = transformed[1];
+        
+        // Special adjustment for Likoma - move label lower
+        const districtName = normalizeName(featureDistrictName(d));
+        if (districtName === "LIKOMA") {
+          y += 15 * currentTransform.k; // Scale the adjustment with zoom
+        }
+        return y;
+      });
     }
 
     // Programmatic focus on feature - SIMPLIFIED
@@ -1310,7 +1399,17 @@
       const translate = [width * 0.5 - scale * x, height * 0.25 - scale * y];
 
       // Apply transform immediately without animation
-      svg.call(zoomBehavior.transform, d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale));
+      const newTransform = d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale);
+      currentTransform = newTransform;
+      svg.call(zoomBehavior.transform, newTransform);
+      
+      // Update labels position after zoom
+      updateLabelsPosition();
+      
+      // Hide labels when focusing on a district
+      if (districtLabels) {
+        districtLabels.classed("hidden", true);
+      }
     }
 
     function resetView(){
@@ -1318,7 +1417,8 @@
       selectedFeatureId = null;
       
       // Reset zoom immediately without animation
-      svg.call(zoomBehavior.transform, d3.zoomIdentity);
+      currentTransform = d3.zoomIdentity;
+      svg.call(zoomBehavior.transform, currentTransform);
       
       if(districtSelection) {
         districtSelection.classed("faded", false).classed("focused", false);
@@ -1329,6 +1429,12 @@
       
       // Show header again
       header.classed("hidden", false);
+      
+      // Update labels position and show them again when resetting view
+      if (districtLabels && showLabels) {
+        updateLabelsPosition();
+        districtLabels.classed("hidden", false);
+      }
     }
 
     // ---------- Panel Management ----------
@@ -1365,6 +1471,8 @@
         // Clear previous results
         searchResults.html("");
         districtSearch.node().value = "";
+        // Focus on search input
+        setTimeout(() => districtSearch.node().focus(), 100);
       });
       
       // Set up search functionality with debouncing
@@ -1409,17 +1517,26 @@
     // Function to handle district selection from search
     function selectDistrictFromSearch(district) {
       // Find the corresponding DOM element for this district
+      let found = false;
       districtSelection.each(function(d) {
         const districtName = featureDistrictName(d);
         const searchDistrictName = featureDistrictName(district);
         if (normalizeName(districtName) === normalizeName(searchDistrictName)) {
           // Simulate a click on this district
           onDistrictClick({ currentTarget: this }, d);
+          found = true;
         }
       });
       
-      // Hide the search panel
+      if (!found) {
+        // Fallback: manually trigger the district selection
+        onDistrictClick({ currentTarget: null }, district);
+      }
+      
+      // Hide the search panel and show info panel
       hideAllPanels();
+      showPanel(infoPanel);
+      infoPanelContent.html(buildInfoPanelHtml(district, currentYear));
     }
     
     function isLake(f){
@@ -1451,7 +1568,9 @@
 
       // fade others, highlight this
       districtSelection.classed("faded", dd => dd !== d);
-      d3.select(event.currentTarget).classed("faded", false).classed("focused", true).raise();
+      if (event.currentTarget) {
+        d3.select(event.currentTarget).classed("faded", false).classed("focused", true).raise();
+      }
 
       // Show info panel in bottom half
       showPanel(infoPanel);
@@ -1503,10 +1622,10 @@
       // Remove any existing labels first
       removeDistrictLabels();
       
-      // Create a group for labels that will transform with the map
-      const labelsGroup = mapGroup.append("g")
+      // Create a group for labels in screen space (not transformed with map)
+      const labelsGroup = svg.append("g")
         .attr("class", "district-labels");
-      
+
       // Get districts (exclude lakes)
       const districts = geoData.features.filter(f => !isLake(f));
       
@@ -1516,24 +1635,62 @@
         .enter()
         .append("text")
         .attr("class", "district-label")
-        .attr("x", d => {
-          // Use centroid for label position
-          const centroid = path.centroid(d);
-          return centroid[0];
-        })
-        .attr("y", d => {
-          const centroid = path.centroid(d);
-          return centroid[1];
-        })
         .text(d => {
           const name = featureDistrictName(d);
           return districtAbbreviations[name.toUpperCase()] || name;
         });
+      
+      // Set initial positions
+      updateLabelsPosition();
     }
     
     function removeDistrictLabels() {
       d3.selectAll(".district-labels").remove();
       districtLabels = null;
+    }
+    
+    // ---------- Add invisible click layer with thick transparent strokes ----------
+    function addClickLayer() {
+      if (!geoData || !geoData.features) return;
+      
+      // Remove any existing click layer first
+      removeClickLayer();
+      
+      const districts = geoData.features.filter(f => !isLake(f));
+      
+      // Create invisible click layer on top with thicker strokes
+      clickLayer = mapGroup.append("g").attr("class", "click-layer");
+
+      clickLayer.selectAll("path")
+        .data(districts)
+        .enter()
+        .append("path")
+        .attr("class", d => {
+          const districtName = normalizeName(featureDistrictName(d));
+          return districtName === "LIKOMA" ? "district-click-target district-click-likoma" : "district-click-target";
+        })
+        .attr("d", path)
+        .style("fill", "transparent")
+        .style("stroke", "transparent")
+        .style("stroke-width", d => {
+          const districtName = normalizeName(featureDistrictName(d));
+          // Much thicker stroke for Likoma, slightly thicker for others
+          return districtName === "LIKOMA" ? "20px" : "6px";
+        })
+        .style("pointer-events", "all")
+        .style("cursor", "pointer")
+        .on("click", function(event, d) {
+          onDistrictClick(event, d);
+        })
+        .on("touchstart", function(event, d) {
+          event.preventDefault();
+          onDistrictClick(event, d);
+        });
+    }
+    
+    function removeClickLayer() {
+      d3.selectAll(".click-layer").remove();
+      clickLayer = null;
     }
     
     // ---------- Help functionality ----------
@@ -1544,7 +1701,7 @@
       });
       
       // Close help panel when close button is clicked
-      const helpCloseButton = d3.select("#help-panel .close-button");
+      const helpCloseButton = helpPanel.select(".close-button");
       helpCloseButton.on("click", function(event) {
         event.stopPropagation();
         hideHelpPanel();
@@ -1605,27 +1762,24 @@
           .attr("class","lake")
           .attr("d", path);
 
-        // 6) draw districts - simplified for performance
+        // 6) draw districts - first draw the visible districts
         districtSelection = mapGroup.append("g").attr("class","districts")
           .selectAll("path")
           .data(districts)
           .enter()
           .append("path")
-          .attr("class","district")
+          .attr("class", "district")
           .attr("d", path)
           .attr("fill", d => {
             const dname = normalizeName(featureDistrictName(d));
             const yearData = allElectionData[currentYear] || { electionData: {} };
             return (yearData.electionData[dname] ? yearData.electionData[dname].color : "#f5f5f5");
           })
-          .on("click", function(event, d) {
-            onDistrictClick(event, d);
-          })
-          .on("touchstart", function(event, d) {
-            // Improved touch handling for mobile devices
-            event.preventDefault();
-            onDistrictClick(event, d);
-          });
+          .style("stroke-width", "2px")
+          .style("stroke", "#333");
+
+        // 6.5) Create invisible click layer on top with thicker strokes
+        addClickLayer();
 
         // 7) initialize zoom
         initZoom();
@@ -1689,6 +1843,13 @@
         window.addEventListener("resize", debounce(() => {
           updateProjection();
           svg.selectAll("path").attr("d", path);
+          // Re-add labels and click layer with new positions after resize
+          if (showLabels) {
+            removeDistrictLabels();
+            addDistrictLabels();
+          }
+          removeClickLayer();
+          addClickLayer();
         }, 250));
 
         // 15) populate year dropdown (UI)
@@ -1699,6 +1860,9 @@
         
         // 17) Update navigation buttons
         updateNavigationButtons();
+
+        // 18) Add district labels (visible by default)
+        addDistrictLabels();
 
         // Hide loading indicator
         loadingIndicator.style("display", "none");
