@@ -199,8 +199,8 @@
       right: var(--tv-safe-margin);
       top: 3%;
       width: 420px;
-      height: auto;
-      max-height: 600px; /* Add maximum height */
+      min-height: 520px;
+      max-height: 610px; /* Add maximum height */
     }
     
     .party-stats {
@@ -991,58 +991,83 @@
     const ctx = partyCtx;
     const canvas = partyCanvas;
     
+    // Clear canvas with higher resolution for sharpness
+    const scale = 2; // Retina scaling for sharp text
+    canvas.width = 300 * scale;
+    canvas.height = 300 * scale; // Reduced height to match style
+    canvas.style.width = '300px';
+    canvas.style.height = '300px';
+    ctx.scale(scale, scale);
+    
     // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, canvas.width / scale, canvas.height / scale);
     
-    // Draw background
+    // Draw background (consistent with other panels)
     ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0, 0, canvas.width / scale, canvas.height / scale);
     
-    // Draw border
+    // Draw border (consistent with other panels)
     ctx.strokeStyle = 'rgba(0,0,0,0.08)';
     ctx.lineWidth = 1;
-    ctx.strokeRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeRect(0, 0, canvas.width / scale, canvas.height / scale);
     
-    // Draw shadow
+    // Draw shadow (consistent with other panels)
     ctx.shadowColor = 'rgba(0,0,0,0.1)';
     ctx.shadowBlur = 8;
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 4;
     
-    // Draw title
+    // Draw title (consistent with other panels)
     ctx.fillStyle = '#0d2136';
-    ctx.font = '700 40px "Libre Franklin", "Segoe UI", Roboto, Arial, sans-serif';
-    ctx.fillText('Districts Won', 20, 50);
+    ctx.font = '700 32px "Libre Franklin", "Segoe UI", Roboto, Arial, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('Districts Won', 20, 45);
     
-    // Draw title underline
+    // Draw title underline (consistent with other panels)
     ctx.fillStyle = '#0d2136';
-    ctx.fillRect(20, 60, canvas.width - 40, 2);
+    ctx.fillRect(20, 55, canvas.width / scale - 40, 2);
     
     ctx.shadowColor = 'transparent'; // Reset shadow
     
-    let yPos = 100;
-    const rowHeight = 50;
+    let yPos = 90; // Slightly higher start
+    const rowHeight = 50; // Reduced row height to match other panels
     
-    partyArray.forEach((party, index) => {
-      // Draw party color swatch
-      ctx.fillStyle = party.color;
-      ctx.fillRect(20, yPos - 15, 16, 16);
-      
-      // Draw party abbreviation
-      ctx.fillStyle = '#111';
-      ctx.font = '700 20px "Libre Franklin", "Segoe UI", Roboto, Arial, sans-serif';
-      ctx.fillText(party.abbreviation, 90, yPos);
-      
-      // Draw district count
-      ctx.fillStyle = '#333';
-      ctx.font = '700 22px "Libre Franklin", "Segoe UI", Roboto, Arial, sans-serif';
-      ctx.textAlign = 'right';
-      ctx.fillText(party.districts.toString(), canvas.width - 35, yPos);
-      ctx.textAlign = 'left';
-      
-      yPos += rowHeight;
+    // Filter parties with districts > 0
+    const validParties = partyArray.filter(p => p.districts > 0);
+    
+    // Draw current page parties
+    validParties.forEach((party, index) => {
+        if (index >= 4) return; // Show max 4 parties like other panels
+        
+        // Draw percentage bar background (consistent with candidate panel)
+        ctx.fillStyle = 'rgba(0,0,0,0.03)';
+        ctx.fillRect(10, yPos - 25, canvas.width / scale - 20, rowHeight - 5);
+        
+        // Draw party color swatch (consistent with previous style)
+        ctx.fillStyle = party.color;
+        ctx.fillRect(20, yPos - 14, 16, 16);
+        
+        // Draw party abbreviation only (removed the duplicate party name)
+        ctx.fillStyle = '#111';
+        ctx.font = '700 18px "Libre Franklin", "Segoe UI", Roboto, Arial, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(party.abbreviation, 90, yPos);
+        
+        // Draw district count (consistent alignment with other panels)
+        ctx.fillStyle = '#333';
+        ctx.font = '700 20px "Libre Franklin", "Segoe UI", Roboto, Arial, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText(party.districts.toString(), canvas.width / scale - 30, yPos);
+        
+        ctx.textAlign = 'left';
+        yPos += rowHeight;
     });
+    
+    // Reset scale for future drawings
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
+
+
 
   // Arrow drawing function
   function drawArrow(ctx, x, y, direction, interactive = true) {
@@ -1120,16 +1145,16 @@
     
     // Draw title
     ctx.fillStyle = '#0d2136';
-    ctx.font = '700 40px "Libre Franklin", "Segoe UI", Roboto, Arial, sans-serif';
+    ctx.font = '700 60px "Libre Franklin", "Segoe UI", Roboto, Arial, sans-serif';
     ctx.textAlign = 'left';
     
     const dnameRaw = featureDistrictName(feature);
     const dname = normalizeName(dnameRaw);
-    ctx.fillText(dnameRaw || "Unknown District", 20, 50);
+    ctx.fillText(dnameRaw || "Unknown District", 20, 65);
     
     // Draw title underline
     ctx.fillStyle = '#0d2136';
-    ctx.fillRect(20, 60, canvas.width - 40, 2);
+    ctx.fillRect(25, 85, canvas.width - 40, 2);
     
     ctx.shadowColor = 'transparent'; // Reset shadow
     
@@ -1154,11 +1179,11 @@
     // Draw subtitle
     ctx.fillStyle = "#444";
     ctx.font = '500 24px "Libre Franklin", "Segoe UI", Roboto, Arial, sans-serif';
-    ctx.fillText(`District votes (${year})`, 20, 100);
+    ctx.fillText(`District votes (${year})`, 20, 118);
     
-    let yPos = 140;
+    let yPos = 160;
     const rowHeight = 65;
-    const maxVisibleRows = 5;
+    const maxVisibleRows = 6;
     
     // Filter candidates with votes > 0
     const validCandidates = districtData.candidates.filter(c => c.votes > 0);
@@ -1210,12 +1235,12 @@
         ctx.fillStyle = '#333';
         ctx.font = '700 22px "Libre Franklin", "Segoe UI", Roboto, Arial, sans-serif';
         ctx.textAlign = 'right';
-        ctx.fillText(`${candidate.percentage}%`, canvas.width - 115, yPos);
+        ctx.fillText(`${candidate.percentage}%`, canvas.width - 135, yPos);
         
         // Draw votes
         ctx.fillStyle = '#202020';
         ctx.font = '18px "Libre Franklin", "Segoe UI", Roboto, Arial, sans-serif';
-        ctx.fillText(candidate.votes.toLocaleString(), canvas.width - 45, yPos);
+        ctx.fillText(candidate.votes.toLocaleString(), canvas.width - 25, yPos);
         ctx.textAlign = 'left';
         
         yPos += rowHeight;
