@@ -69,6 +69,54 @@
       line-height: 1.2;
     }
 
+    /* Election years indicator */
+    .election-years {
+      position: absolute;
+      top: 100px; /* Position below header */
+      right: 16px;
+      text-align: right;
+      font-size: 12px;
+      color: #666;
+      z-index: 60;
+      pointer-events: none;
+      padding: 6px 10px;
+      background: rgba(255, 255, 255, 0.7);
+      border-radius: 4px;
+      max-width: 200px;
+    }
+
+    /* Powered by footer */
+    .powered-by-footer {
+      position: absolute;
+      bottom: 22px;
+      left: 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+      z-index: 60;
+      pointer-events: none;
+      padding: 6px 10px;
+      background: rgba(255, 255, 255, 0.7);
+      border-radius: 8px;
+      text-align: center;
+
+    }
+
+    .powered-by-text {
+      font-size: 20px;
+      color: #666;
+      font-weight: 500;
+      margin: 0;
+    }
+
+    .powered-by-logo {
+      height: 63px;
+      width: auto;
+      display: block;
+      margin: 0;
+    }
+
     /* Years dropdown */
     .year-dropdown {
       position: absolute;
@@ -163,7 +211,7 @@
     .control-buttons {
       position: absolute;
       right: 12px;
-      top: 50%;
+      top: 55%;
       transform: translateY(-50%);
       z-index: 70;
       display: flex;
@@ -202,6 +250,11 @@
     .control-button.active {
       background: var(--accent);
       color: white;
+    }
+
+    .control-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
     }
 
     /* Help button specific style */
@@ -456,6 +509,7 @@
     /* ---------- Footer for 2025 ---------- */
     .footer {
       position: absolute;
+      top: 30%;
       bottom: 10px;
       left: 16px;
       width: auto;
@@ -468,22 +522,6 @@
       background: rgba(255, 255, 255, 0.7);
       border-radius: 4px;
       display: none;
-    }
-
-    /* Data freshness indicator */
-    .data-freshness {
-      position: absolute;
-      bottom: 8%; /* Position above the footer */
-      left: 16px;
-      width: auto;
-      text-align: left;
-      font-size: 12px;
-      color: #666;
-      z-index: 60;
-      pointer-events: none;
-      padding: 6px 10px;
-      background: rgba(255, 255, 255, 0.7);
-      border-radius: 4px;
     }
 
     /* ---------- Loading Indicator ---------- */
@@ -623,6 +661,10 @@
         width: 90%;
         padding: 15px;
       }
+      .election-years {
+        font-size: 11px;
+        max-width: 180px;
+      }
     }
   </style>
 </head>
@@ -632,7 +674,14 @@
     <div id="yearDropdown" class="year-dropdown" role="menu" aria-hidden="true"></div>
   </div>
 
-  
+  <div id="election-years" class="election-years">
+    Official votes for 1994-2025
+  </div>
+
+  <div class="powered-by-footer">
+    <span class="powered-by-text">Powered by</span>
+    <img src="data/mapLogo.png" alt="Logo" class="powered-by-logo">
+  </div>
 
   <div id="map-root" role="application" aria-label="Malawi map">
     <svg id="map-svg" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet"></svg>
@@ -649,6 +698,14 @@
       <div class="control-button-wrapper">
         <button id="search-button" class="control-button" aria-label="Search districts">🔍</button>
         <span class="button-label">Search</span>
+      </div>
+      <div class="control-button-wrapper">
+        <button id="prev-year" class="control-button" aria-label="Previous year">⬅️</button>
+        <span class="button-label">Prev Year</span>
+      </div>
+      <div class="control-button-wrapper">
+        <button id="next-year" class="control-button" aria-label="Next year">➡️</button>
+        <span class="button-label">Next Year</span>
       </div>
       <div class="control-button-wrapper">
         <button id="help-button" class="control-button" aria-label="Show help">❓</button>
@@ -668,7 +725,7 @@
     <div id="candidate-stats" class="stats-panel">
       <button class="close-button" aria-label="Close panel">×</button>
       <div class="panel-header">
-        <div class="stats-title">Total Votes</div>
+        <div class="stats-title">Total Votes (<span id="candidate-year">2025</span>)</div>
       </div>
       <div class="panel-content">
         <table class="stats-table" id="candidate-table"></table>
@@ -678,7 +735,7 @@
     <div id="party-stats" class="stats-panel">
       <button class="close-button" aria-label="Close panel">×</button>
       <div class="panel-header">
-        <div class="stats-title">Districts Won</div>
+        <div class="stats-title">Districts Won (<span id="party-year">2025</span>)</div>
       </div>
       <div class="panel-content">
         <table class="stats-table" id="party-table"></table>
@@ -705,10 +762,6 @@
 
     <div id="footer" class="footer">
       *Official results for 2025*
-    </div>
-
-    <div id="data-freshness" class="data-freshness">
-      Data updated: <span id="last-updated">Loading...</span>
     </div>
   </div>
 
@@ -753,15 +806,37 @@
     let showLabels = false; // Track label visibility state
 
     // District abbreviations mapping
-    const districtAbbreviations = {
-      "CHITIPA": "CT", "KARONGA": "KA", "LIKOMA": "LI", "MZIMBA": "MB", 
-      "NKHATA BAY": "NB", "RUMPHI": "RU", "DEDZA": "DE", "DOWA": "DO", 
-      "KASUNGU": "KU", "LILONGWE": "LL", "MCHINJI": "MI", "NKHOTAKOTA": "NK", 
-      "NENO": "NE", "NTCHEU": "NT", "NTCHISI": "NC", "SALIMA": "SA", 
-      "BALAKA": "BA", "BLANTYRE": "BT", "CHIKWAWA": "CK", "CHIRADZULu": "CR", 
-      "MACHINGA": "MA", "MANGOCHI": "MG", "MULANJE": "MU", "MWANZA": "MW", 
-      "NSANJE": "NS", "PHALOMBE": "PH", "THYOLO": "TH", "ZOMBA": "ZA"
-    };
+  const districtAbbreviations = {
+    "CHITIPA": "CP",
+    "KARONGA": "KA",
+    "LIKOMA": "LK",
+    "MZIMBA": "MZ",
+    "NKHATA BAY": "NB",
+    "RUMPHI": "RU",
+    "DEDZA": "DZ",
+    "DOWA": "DA",
+    "KASUNGU": "KU",
+    "LILONGWE": "LL",
+    "MCHINJI": "MC",
+    "NKHOTAKOTA": "KK",
+    "NENO": "NN",
+    "NTCHEU": "NU",
+    "NTCHISI": "NS",
+    "SALIMA": "SA",
+    "BALAKA": "BK",
+    "BLANTYRE": "BT",
+    "CHIKWAWA": "CK",
+    "CHIRADZULU": "CR",
+    "MACHINGA": "MA",
+    "MANGOCHI": "MHG",
+    "MULANJE": "MU",
+    "MWANZA": "MW",
+    "NSANJE": "NE",
+    "PHALOMBE": "PE",
+    "THYOLO": "TO",
+    "ZOMBA": "ZA"
+  };
+
 
     // UI Elements
     const mapRoot = document.getElementById("map-root");
@@ -788,8 +863,11 @@
     const helpButton = d3.select("#help-button");
     const helpPanel = d3.select("#help-panel");
     const helpOverlay = d3.select("#help-overlay");
-    const dataFreshness = d3.select("#data-freshness");
-    const lastUpdated = d3.select("#last-updated");
+    const prevYearButton = d3.select("#prev-year");
+    const nextYearButton = d3.select("#next-year");
+    const candidateYearSpan = d3.select("#candidate-year");
+    const partyYearSpan = d3.select("#party-year");
+    const electionYears = d3.select("#election-years");
 
     // Projection & path
     const projection = d3.geoMercator()
@@ -934,9 +1012,13 @@
     }
 }
 
+    // Update navigation button states
+    function updateNavigationButtons() {
+      const currentIndex = years.indexOf(currentYear);
+      prevYearButton.property("disabled", currentIndex === 0);
+      nextYearButton.property("disabled", currentIndex === years.length - 1);
+    }
 
-
-    // ---------- Update candidate and party stats ----------
     // ---------- Update candidate and party stats ----------
     function updateStatsPanels(year) {
       const dataset = allElectionData[year] || { electionData: {}, partyColors: {} };
@@ -1125,7 +1207,6 @@
       path.projection(projection);
     }
 
-    // ---------- Info panel builder WITHOUT percentage bars ----------
     // ---------- Info panel builder with winner row highlighting ----------
     function buildInfoPanelHtml(feature, year){
       const dnameRaw = featureDistrictName(feature);
@@ -1199,16 +1280,11 @@
         return districtData.color || "#bdbdbd";
       });
       
-      // In the updateMapForYear function, update both footer and data freshness
+      // Update footer for 2025
       if (year === "2025") {
         footer.style("display", "block");
-        footer.style("bottom", "13%");
-        // Position data freshness above the footer
-        dataFreshness.style("bottom", "8%");
       } else {
         footer.style("display", "none");
-        // Position data freshness at the bottom when footer is hidden
-        dataFreshness.style("bottom", "8%");
       }
     }
 
@@ -1398,10 +1474,15 @@
       yearDropdown.selectAll("button").filter(d => d === year).classed("active", true);
       // update header text
       d3.select("#page-title").text(`Malawi Presidential Election — ${year}`);
+      // update panel year indicators
+      candidateYearSpan.text(year);
+      partyYearSpan.text(year);
       // update map colors
       updateMapForYear(currentYear);
       // update stats panels
       updateStatsPanels(currentYear);
+      // update navigation buttons
+      updateNavigationButtons();
       // reset view so colors show across full map
       resetView();
     }
@@ -1496,20 +1577,6 @@
       helpOverlay.classed("visible", false);
     }
 
-    // ---------- Data freshness indicator ----------
-    function updateDataFreshnessIndicator() {
-      const now = new Date();
-      const formattedDate = now.toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-      
-      lastUpdated.text(formattedDate);
-    }
-
     // ---------- Load geojson + CSVs and draw map ----------
     async function initializeMap() {
       try {
@@ -1587,6 +1654,21 @@
           showPanel(partyStats);
         });
         
+        // Set up year navigation buttons
+        prevYearButton.on("click", function() {
+          const currentIndex = years.indexOf(currentYear);
+          if (currentIndex > 0) {
+            setYear(years[currentIndex - 1]);
+          }
+        });
+
+        nextYearButton.on("click", function() {
+          const currentIndex = years.indexOf(currentYear);
+          if (currentIndex < years.length - 1) {
+            setYear(years[currentIndex + 1]);
+          }
+        });
+        
         // Set up search functionality
         setupSearchFunctionality();
         
@@ -1619,8 +1701,8 @@
         // 16) helper: updateMapForYear initial
         updateMapForYear(currentYear);
         
-        // 17) Update data freshness indicator
-        updateDataFreshnessIndicator();
+        // 17) Update navigation buttons
+        updateNavigationButtons();
 
         // Hide loading indicator
         loadingIndicator.style("display", "none");
