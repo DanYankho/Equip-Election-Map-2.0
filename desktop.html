@@ -710,7 +710,6 @@
    - Added two-digit year input option
    - Added district labels with abbreviations
    - Labels are hidden when district is selected and zoomed in
-   - Added Shift + district abbreviation keyboard shortcuts
    - Updated panels with pagination system using arrows
    - Added year navigation buttons and help modal
 */
@@ -895,7 +894,7 @@
     
     let yPos = 100;
     const rowHeight = 65;
-    const maxVisibleRows = 6;
+    const maxVisibleRows = 5;
     const leftMargin = 25; // Consistent left margin for all content
     
     // Filter candidates with votes > 0
@@ -951,34 +950,40 @@
         yPos += rowHeight;
     });
     
-    // Draw pagination info and arrows if needed
+    // Draw pagination info and arrows if needed - FIXED SIZE AND POSITION
     if (totalPages > 1) {
+        // Fixed position at bottom of panel
+        const yPosition = canvas.height - 40; // Always at bottom
+        
+        // Calculate pagination area
         const paginationText = `Page ${candidatePanelPage + 1} of ${totalPages}`;
-        ctx.textAlign = 'left'; // Reset alignment
+        ctx.textAlign = 'left';
+        
+        // Use 75% size for text
+        ctx.font = '500 22.5px "Libre Franklin", "Segoe UI", Roboto, Arial, sans-serif'; // 75% of 30px
         const textWidth = ctx.measureText(paginationText).width;
-        const totalWidth = textWidth + 260;
+        const totalWidth = textWidth + 195; // 75% of 260px
         
         const startX = (canvas.width - totalWidth) / 2;
-        const yPosition = canvas.height - 40;
         
-        // Draw down arrow if not on last page
+        // Draw down arrow if not on last page (75% size)
+        const arrowSize = 30; // 75% of 40px
         if (candidatePanelPage < totalPages - 1) {
-            drawArrow(ctx, startX + 15, yPosition, 'down', true);
+            drawArrow(ctx, startX + 11.25, yPosition, 'down', true, arrowSize); // 75% of 15px
         } else {
-            drawArrow(ctx, startX + 15, yPosition, 'down', false);
+            drawArrow(ctx, startX + 11.25, yPosition, 'down', false, arrowSize);
         }
         
-        // Draw page indicator
+        // Draw page indicator with 75% size
         ctx.fillStyle = '#777';
-        ctx.font = '500 30px "Libre Franklin", "Segoe UI", Roboto, Arial, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(paginationText, startX + totalWidth / 2, yPosition + 5);
+        ctx.fillText(paginationText, startX + totalWidth / 2, yPosition + 3.75); // 75% of 5px
         
-        // Draw up arrow if not on first page
+        // Draw up arrow if not on first page (75% size)
         if (candidatePanelPage > 0) {
-            drawArrow(ctx, startX + totalWidth - 15, yPosition, 'up', true);
+            drawArrow(ctx, startX + totalWidth - 11.25, yPosition, 'up', true, arrowSize); // 75% of 15px
         } else {
-            drawArrow(ctx, startX + totalWidth - 15, yPosition, 'up', false);
+            drawArrow(ctx, startX + totalWidth - 11.25, yPosition, 'up', false, arrowSize);
         }
         
         // Reset alignment
@@ -986,6 +991,32 @@
     }
   }
 
+  // Updated arrow drawing function with size parameter
+  function drawArrow(ctx, x, y, direction, interactive = true, size = 40) {
+    ctx.save();
+    
+    if (interactive) {
+        ctx.fillStyle = 'rgba(13, 33, 54, 0.8)';
+    } else {
+        ctx.fillStyle = 'rgba(200, 200, 200, 0.5)'; // Disabled color
+    }
+    
+    ctx.beginPath();
+    
+    if (direction === 'down') {
+        ctx.moveTo(x - size/2, y - size/3);
+        ctx.lineTo(x + size/2, y - size/3);
+        ctx.lineTo(x, y + size/3);
+    } else if (direction === 'up') {
+        ctx.moveTo(x - size/2, y + size/3);
+        ctx.lineTo(x + size/2, y + size/3);
+        ctx.lineTo(x, y - size/3);
+    }
+    
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
 
   function drawPartyPanel(partyArray) {
     const ctx = partyCtx;
@@ -1067,37 +1098,6 @@
     ctx.setTransform(1, 0, 0, 1, 0, 0);
   }
 
-
-
-  // Arrow drawing function
-  function drawArrow(ctx, x, y, direction, interactive = true) {
-    const size = 40;
-    
-    ctx.save();
-    
-    if (interactive) {
-        ctx.fillStyle = 'rgba(13, 33, 54, 0.8)';
-    } else {
-        ctx.fillStyle = 'rgba(200, 200, 200, 0.5)'; // Disabled color
-    }
-    
-    ctx.beginPath();
-    
-    if (direction === 'down') {
-        ctx.moveTo(x - size/2, y - size/3);
-        ctx.lineTo(x + size/2, y - size/3);
-        ctx.lineTo(x, y + size/3);
-    } else if (direction === 'up') {
-        ctx.moveTo(x - size/2, y + size/3);
-        ctx.lineTo(x + size/2, y + size/3);
-        ctx.lineTo(x, y - size/3);
-    }
-    
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
-  }
-
   // ---------- District Votes Panel Drawing Function ----------
   function drawDistrictPanel(feature, year) {
     // Create the canvas if it doesn't exist
@@ -1107,7 +1107,7 @@
         districtCanvas.className = 'canvas-panel';
         districtCanvas.style.position = 'absolute';
         districtCanvas.style.left = '3%';
-        districtCanvas.style.top = '10%';
+        districtCanvas.style.top = '6%';
         districtCanvas.style.width = '450px';
         districtCanvas.style.height = '600px';
         districtCanvas.style.zIndex = '60';
@@ -1119,7 +1119,7 @@
         
         districtCtx = districtCanvas.getContext('2d');
         districtCanvas.width = 450;
-        districtCanvas.height = 600;
+        districtCanvas.height = 550;
     }
     
     const ctx = districtCtx;
@@ -1183,7 +1183,7 @@
     
     let yPos = 160;
     const rowHeight = 65;
-    const maxVisibleRows = 6;
+    const maxVisibleRows = 5;
     
     // Filter candidates with votes > 0
     const validCandidates = districtData.candidates.filter(c => c.votes > 0);
@@ -1707,16 +1707,22 @@
     yearDropdown.selectAll("button").filter(d => d === year).classed("active", true);
     d3.select("#page-title").text(`Malawi Presidential Election — ${year}`);
     updateMapForYear(currentYear);
+    
+    // RESET PAGINATION BEFORE UPDATING PANELS
+    candidatePanelPage = 0;
+    districtPanelPage = 0;
+    
     updateStatsPanels(currentYear);
     hideYearDropdown();
     resetView();
     updateNavigationButtons();
   }
 
+
   // Process two-digit input
   function processDigitInput(digit) {
     if (digitTimeout) {
-      clearTimeout(digitTimeout);
+        clearTimeout(digitTimeout);
     }
     
     digitInput += digit;
@@ -1736,7 +1742,7 @@
         if (!matchedYear && digitInput === "99") matchedYear = "1999";
         
         if (matchedYear) {
-            setYear(matchedYear);
+            setYear(matchedYear); // This will handle the pagination reset
             inputIndicator.style("background", "#ffffff");
         } else {
             // Show error
@@ -1757,6 +1763,7 @@
         }, 2000);
     }
   }
+
 
   // ---------- Canvas click handler for pagination ----------
   function setupCanvasClickHandlers() {
@@ -1800,12 +1807,12 @@
             })).sort((a, b) => b.votes - a.votes);
 
             const validCandidates = candidateArray.filter(c => c.votes > 0);
-            const maxVisibleRows = 6;
+            const maxVisibleRows = 5;
             const totalPages = Math.ceil(validCandidates.length / maxVisibleRows);
 
             const paginationText = `Page ${candidatePanelPage + 1} of ${totalPages}`;
             const textWidth = candidateCtx.measureText(paginationText).width;
-            const totalWidth = textWidth + 260;
+            const totalWidth = textWidth + 195; // 75% of 260px
             const startX = (rect.width - totalWidth) / 2; // use displayed width
 
             // Down arrow (left side)
@@ -1831,7 +1838,54 @@
 
     // === District panel ===
     // This will be added dynamically when the district canvas is created
+    // === District panel ===
+    // Add click handler for district panel when it's created
+    document.addEventListener('click', function(event) {
+        if (districtCanvas && event.target === districtCanvas) {
+            const rect = districtCanvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            if (y > rect.height - 120) { // Bottom area for pagination
+                const dnameRaw = featureDistrictName(selectedFeature);
+                const dname = normalizeName(dnameRaw);
+                const dataset = allElectionData[currentYear] || { electionData: {} };
+                const districtData = dataset.electionData[dname];
+                
+                if (!districtData || !districtData.candidates) return;
+                
+                const validCandidates = districtData.candidates.filter(c => c.votes > 0);
+                const maxVisibleRows = 5; // MUST MATCH drawDistrictPanel value
+                const totalPages = Math.ceil(validCandidates.length / maxVisibleRows);
+
+                const paginationText = `Page ${districtPanelPage + 1} of ${totalPages}`;
+                const textWidth = districtCtx.measureText(paginationText).width;
+                const totalWidth = textWidth + 260;
+                const startX = (rect.width - totalWidth) / 2;
+
+                // Down arrow (left side)
+                if (
+                    x >= startX - 20 &&
+                    x <= startX + 120 &&
+                    districtPanelPage < totalPages - 1
+                ) {
+                    districtPanelPage++;
+                    drawDistrictPanel(selectedFeature, currentYear);
+                }
+                // Up arrow (right side)
+                else if (
+                    x >= startX + totalWidth - 120 &&
+                    x <= startX + totalWidth + 20 &&
+                    districtPanelPage > 0
+                ) {
+                    districtPanelPage--;
+                    drawDistrictPanel(selectedFeature, currentYear);
+                }
+            }
+        }
+    });
   }
+
 
   // ---------- District Keyboard Shortcuts ----------
   function setupDistrictKeyboardShortcuts() {
@@ -1948,6 +2002,7 @@
         }
 
         // Panel pagination
+        // Panel pagination
         if (e.key === "ArrowDown" && (candidateCanvas.classList.contains("faded") === false || (districtCanvas && districtCanvas.classList.contains("faded") === false))) {
             e.preventDefault();
             
@@ -1975,7 +2030,7 @@
                 })).sort((a, b) => b.votes - a.votes);
                 
                 const validCandidates = candidateArray.filter(c => c.votes > 0);
-                const maxVisibleRows = 6;
+                const maxVisibleRows = 5; // CHANGED FROM 6 TO 5 TO MATCH drawCandidatePanel
                 const totalPages = Math.ceil(validCandidates.length / maxVisibleRows);
                 
                 if (candidatePanelPage < totalPages - 1) {
@@ -2001,7 +2056,9 @@
                 }
             }
         }
-        
+
+
+
         if (e.key === "ArrowUp" && (candidateCanvas.classList.contains("faded") === false || (districtCanvas && districtCanvas.classList.contains("faded") === false))) {
             e.preventDefault();
             
